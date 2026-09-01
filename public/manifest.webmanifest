@@ -1,0 +1,17 @@
+{
+    "name": "Stock Ledger",
+    "short_name": "Stock",
+    "description": "Internal stock ledger for one business",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#0f766e",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}
