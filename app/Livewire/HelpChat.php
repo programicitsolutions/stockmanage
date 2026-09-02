@@ -4,13 +4,14 @@ namespace App\Livewire;
 
 use App\Services\StockAssistant;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\On;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
+#[Layout('layouts.app')]
+#[Title('Stock assistant')]
 class HelpChat extends Component
 {
-    public bool $open = false;
-
     public string $message = '';
 
     /**
@@ -22,27 +23,18 @@ class HelpChat extends Component
     {
         $this->messages = [[
             'role' => 'assistant',
-            'text' => 'Hi — I am the stock assistant. Ask “how do I stock in?”, paste a SKU like MAIN-TIN-50, or type “low stock”. I use this company’s live ledger, not demo numbers.',
+            'text' => 'Hi — I am the stock assistant. Ask about stock in, stock out, adjustments, or paste a SKU such as MAIN-TIN-50. I use this company’s live ledger.',
             'links' => [],
         ]];
     }
 
-    public function toggle(): void
+    public function ask(string $prompt): void
     {
-        $this->open = ! $this->open;
+        $this->message = $prompt;
+        $this->send();
     }
 
-    #[On('open-help-chat')]
-    public function openChat(?string $prompt = null): void
-    {
-        $this->open = true;
-        if (is_string($prompt) && trim($prompt) !== '') {
-            $this->message = $prompt;
-            $this->send(app(StockAssistant::class));
-        }
-    }
-
-    public function send(StockAssistant $assistant): void
+    public function send(): void
     {
         $text = trim($this->message);
         if ($text === '') {
@@ -52,12 +44,32 @@ class HelpChat extends Component
         $this->messages[] = ['role' => 'user', 'text' => $text, 'links' => []];
         $this->message = '';
 
-        $reply = $assistant->reply($text, auth()->user());
-        $this->messages[] = [
-            'role' => 'assistant',
-            'text' => $reply['text'],
-            'links' => $reply['links'],
-        ];
+        $user = auth()->user();
+        if (! $user) {
+            $this->messages[] = [
+                'role' => 'assistant',
+                'text' => 'Please sign in to use the stock assistant.',
+                'links' => [],
+            ];
+
+            return;
+        }
+
+        try {
+            $reply = app(StockAssistant::class)->reply($text, $user);
+            $this->messages[] = [
+                'role' => 'assistant',
+                'text' => $reply['text'],
+                'links' => $reply['links'] ?? [],
+            ];
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->messages[] = [
+                'role' => 'assistant',
+                'text' => 'Something went wrong answering that. Try “stock in”, “stock out”, “low stock”, or a product SKU.',
+                'links' => [],
+            ];
+        }
     }
 
     public function render(): View

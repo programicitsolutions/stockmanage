@@ -82,9 +82,15 @@ class DailyEaseTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(HelpChat::class)
-            ->call('toggle')
             ->set('message', 'how do I stock in?')
             ->call('send')
-            ->assertSee('Stock in');
+            ->assertSee('Stock in')
+            ->assertSee('posts STOCK_IN');
+
+        $this->actingAs($user)
+            ->get(route('assistant'))
+            ->assertOk()
+            ->assertSee('Stock assistant')
+            ->assertSee('Ask or paste a SKU');
     }
 }

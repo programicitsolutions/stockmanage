@@ -1,6 +1,6 @@
 <div>
     @if ($open)
-        <div class="fixed inset-0 z-[80]">
+        <div class="fixed inset-0 z-[50]">
             <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]"></div>
             <div class="relative z-10 flex min-h-full items-center justify-center p-4">
                 <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">

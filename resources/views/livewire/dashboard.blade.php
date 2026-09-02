@@ -60,12 +60,13 @@
             </p>
         </section>
 
-        @if (auth()->user()->canEnterStock())
-            <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            @if (auth()->user()->canEnterStock())
                 <x-ui-link :href="route('stock.in')" wire:navigate>Record stock in</x-ui-link>
                 <x-ui-link :href="route('stock.out')" variant="secondary" wire:navigate>Record stock out</x-ui-link>
-            </div>
-        @endif
+            @endif
+            <x-ui-link :href="route('assistant')" variant="secondary" wire:navigate>Ask the stock assistant</x-ui-link>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <section class="saas-card p-5">

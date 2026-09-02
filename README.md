@@ -77,7 +77,7 @@ Login → Dashboard → Stock in / Stock out → add lines (SKU or name) → Rev
 
 Stock quantity is never edited on the product form. Opening stock is posted once at product create. Later corrections use Stock in, Stock out, or a physical-count / count sheet.
 
-A **stock assistant** chat bubble can look up a SKU and explain the workflows.
+The **stock assistant** is a page at `/assistant` (sidebar **Assistant**, or **Ask assistant**). It answers stock in/out/adjustments questions and looks up a SKU against the live ledger. It is not an AI chat — replies come from `App\Services\StockAssistant`.
 
 ## Roles (enforced on the server)
 

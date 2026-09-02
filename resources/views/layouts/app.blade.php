@@ -70,7 +70,17 @@
         </div>
 
         <livewire:onboarding-tour />
-        <livewire:help-chat />
+
+        @unless (request()->routeIs('assistant'))
+            <a
+                href="{{ route('assistant') }}"
+                wire:navigate
+                class="fixed bottom-4 right-4 z-[90] print:hidden inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-teal-800"
+            >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h5M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.942L3 20l1.06-3.185C3.388 15.71 3 13.912 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                Ask assistant
+            </a>
+        @endunless
 
         <script>
             if ('serviceWorker' in navigator) {

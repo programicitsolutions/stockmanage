@@ -111,19 +111,27 @@ class StockAssistant
     private function findProduct(string $text): ?Product
     {
         $term = trim($text);
-        $sku = Product::query()->where('sku', $term)->orWhere('sku', Str::upper($term))->first();
-        if ($sku) {
-            return $sku;
+
+        if ($term === '' || str_contains($term, ' ')) {
+            return null;
         }
 
-        if (Str::length($term) < 4) {
+        $exact = Product::query()
+            ->whereRaw('LOWER(sku) = ?', [Str::lower($term)])
+            ->first();
+
+        if ($exact) {
+            return $exact;
+        }
+
+        if (Str::length($term) < 3) {
             return null;
         }
 
         $matches = Product::query()
             ->where(function ($query) use ($term) {
-                $query->where('name', 'like', '%'.$term.'%')
-                    ->orWhere('sku', 'like', '%'.$term.'%');
+                $query->where('sku', 'like', $term.'%')
+                    ->orWhere('name', 'like', '%'.$term.'%');
             })
             ->limit(2)
             ->get();

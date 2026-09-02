@@ -11,6 +11,7 @@ use App\Livewire\Dashboard;
 use App\Livewire\Products\Form as ProductForm;
 use App\Livewire\Products\Index as ProductIndex;
 use App\Livewire\Products\Show as ProductShow;
+use App\Livewire\HelpChat;
 use App\Livewire\Reports;
 use App\Livewire\Stock\Entry as StockEntry;
 use App\Livewire\Stock\LiveStock;
@@ -35,6 +36,7 @@ Route::middleware(['auth', 'role:partner,accountant,admin'])->group(function () 
     Route::get('customers', Customers::class)->name('customers.index');
     Route::get('adjustments', Adjustments::class)->name('adjustments.index');
     Route::get('audit', AuditHistory::class)->name('audit.index');
+    Route::get('assistant', HelpChat::class)->name('assistant');
     Route::get('reports', Reports::class)->name('reports.index');
     Route::view('profile', 'profile')->name('profile');
 });
