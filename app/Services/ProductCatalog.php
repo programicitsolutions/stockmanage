@@ -49,7 +49,10 @@ class ProductCatalog
                     'quantity' => $opening,
                     'created_by' => $actor->id,
                     'transaction_date' => now()->toDateString(),
-                    'notes' => 'Opening stock at product setup',
+                    'notes' => $attributes['opening_notes'] ?? 'Opening stock at product setup',
+                    'reference_number' => $attributes['opening_reference'] ?? null,
+                    'excel_import_id' => $attributes['excel_import_id'] ?? null,
+                    'unit_price' => $attributes['default_purchase_price'] ?? null,
                 ]);
             }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\ImportExcel;
 use App\Livewire\Adjustments;
 use App\Livewire\AuditHistory;
 use App\Livewire\Catalog\Categories;
@@ -19,7 +20,7 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-Route::middleware(['auth', 'role:partner,accountant'])->group(function () {
+Route::middleware(['auth', 'role:partner,accountant,admin'])->group(function () {
     Route::get('dashboard', Dashboard::class)->name('dashboard');
     Route::get('stock', LiveStock::class)->name('stock.live');
     Route::get('stock/movement', Movement::class)->name('stock.movement');
@@ -30,6 +31,10 @@ Route::middleware(['auth', 'role:partner,accountant'])->group(function () {
     Route::get('adjustments', Adjustments::class)->name('adjustments.index');
     Route::get('audit', AuditHistory::class)->name('audit.index');
     Route::view('profile', 'profile')->name('profile');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('import', ImportExcel::class)->name('import.excel');
 });
 
 Route::middleware(['auth', 'role:accountant'])->group(function () {

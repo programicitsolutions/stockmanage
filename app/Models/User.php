@@ -53,6 +53,11 @@ class User extends Authenticatable
         return $this->role?->slug === RoleSlug::Accountant;
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role?->slug === RoleSlug::Admin;
+    }
+
     public function hasRole(RoleSlug|string $role): bool
     {
         $slug = $role instanceof RoleSlug ? $role : RoleSlug::from($role);

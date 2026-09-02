@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'transaction_date',
     'notes',
     'created_by',
+    'excel_import_id',
 ])]
 class StockTransaction extends Model
 {

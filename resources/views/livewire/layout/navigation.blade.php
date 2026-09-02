@@ -36,6 +36,9 @@ new class extends Component
                     @foreach ($links as [$label, $href, $active])
                         <x-nav-link :href="$href" :active="$active" wire:navigate>{{ $label }}</x-nav-link>
                     @endforeach
+                    @if (auth()->user()->isAdmin())
+                        <x-nav-link :href="route('import.excel')" :active="request()->routeIs('import.*')" wire:navigate>Import Excel</x-nav-link>
+                    @endif
                     @if (auth()->user()->isAccountant())
                         <x-nav-link :href="route('stock.in')" :active="request()->routeIs('stock.in')" wire:navigate>Stock in</x-nav-link>
                         <x-nav-link :href="route('stock.out')" :active="request()->routeIs('stock.out')" wire:navigate>Stock out</x-nav-link>
@@ -90,6 +93,9 @@ new class extends Component
             @foreach ($links as [$label, $href, $active])
                 <x-responsive-nav-link :href="$href" :active="$active" wire:navigate>{{ $label }}</x-responsive-nav-link>
             @endforeach
+            @if (auth()->user()->isAdmin())
+                <x-responsive-nav-link :href="route('import.excel')" :active="request()->routeIs('import.*')" wire:navigate>Import Excel</x-responsive-nav-link>
+            @endif
             @if (auth()->user()->isAccountant())
                 <x-responsive-nav-link :href="route('stock.in')" :active="request()->routeIs('stock.in')" wire:navigate>Stock in</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('stock.out')" :active="request()->routeIs('stock.out')" wire:navigate>Stock out</x-responsive-nav-link>

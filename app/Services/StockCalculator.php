@@ -121,6 +121,7 @@ class StockCalculator
                 'transaction_date' => $attributes['transaction_date'],
                 'notes' => $attributes['notes'] ?? null,
                 'created_by' => $attributes['created_by'],
+                'excel_import_id' => $attributes['excel_import_id'] ?? null,
             ]);
         });
     }

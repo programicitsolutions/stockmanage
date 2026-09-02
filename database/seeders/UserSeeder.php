@@ -13,6 +13,7 @@ class UserSeeder extends Seeder
     {
         $partnerRole = Role::query()->where('slug', RoleSlug::Partner)->firstOrFail();
         $accountantRole = Role::query()->where('slug', RoleSlug::Accountant)->firstOrFail();
+        $adminRole = Role::query()->where('slug', RoleSlug::Admin)->firstOrFail();
 
         foreach (range(1, 5) as $number) {
             User::query()->updateOrCreate(
@@ -33,6 +34,17 @@ class UserSeeder extends Seeder
                 'name' => 'Accountant',
                 'password' => 'password',
                 'role_id' => $accountantRole->id,
+                'email_verified_at' => now(),
+                'is_active' => true,
+            ],
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'admin@stock.local'],
+            [
+                'name' => 'Admin',
+                'password' => 'password',
+                'role_id' => $adminRole->id,
                 'email_verified_at' => now(),
                 'is_active' => true,
             ],

@@ -81,6 +81,7 @@ Password for every seeded account: `password`
 | --- | --- |
 | Partner | `partner1@stock.local` … `partner5@stock.local` |
 | Accountant | `accountant@stock.local` |
+| Admin | `admin@stock.local` |
 
 Public registration is disabled. Add staff later with a seeder or artisan tinker until an admin screen exists.
 
@@ -90,6 +91,7 @@ Simple `roles` table and `users.role_id`. No permission matrix.
 
 - **Partner** — dashboard, live stock, movement, products (view), catalog (view), audit, approve/reject adjustments
 - **Accountant** — all of the above except approval, plus add/edit products, categories, suppliers, customers, stock in, stock out, and adjustment requests
+- **Admin** — same view access as partners, plus Excel import (`/import`)
 
 ## Database
 
@@ -108,7 +110,7 @@ Money uses `DECIMAL(15,2)`. Quantities use `DECIMAL(15,3)`. Do not use floats fo
 
 Profit is not stored on products. Later: profit per unit = selling price − landing price.
 
-Excel / Google Sheets import is **not** in this phase. Do not invent spreadsheet data here.
+Excel import is Admin-only: `/import` → upload → validate → preview → Confirm Import. AVAILABLE is posted as an `OPENING` ledger row. INPUT/OUT/Total Value/PROFIT are not imported as stock. Re-importing the same file cannot double opening stock.
 
 ## Important classes
 
@@ -117,13 +119,12 @@ Excel / Google Sheets import is **not** in this phase. Do not invent spreadsheet
 - `App\Models\StockTransaction` — throws if updated or deleted
 - `App\Observers\StockTransactionObserver` — writes `activity_logs`
 - `App\Services\ProductCatalog` — create product and post opening stock to the ledger
-- `App\Services\StockAdjustmentService` — request, reject, or approve-and-post adjustments
+- `App\Services\ExcelImport\StockExcelParser` / `StockExcelImporter` — Admin Excel preview and confirm import
 
 Negative stock is blocked unless `STOCK_ALLOW_NEGATIVE=true` (default false).
 
 ## What is intentionally not built yet
 
-- Excel / Google Sheets import
 - Landing-price cost-line entry (transport, loading) in the UI
 - Profit reports and exports
 - Multi-tenant / SaaS features

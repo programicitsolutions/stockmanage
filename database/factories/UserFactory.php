@@ -50,6 +50,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'role_id' => $this->roleId(RoleSlug::Admin),
+        ]);
+    }
+
     private function roleId(RoleSlug $role): int
     {
         return Role::query()->firstOrCreate(
