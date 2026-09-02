@@ -30,6 +30,9 @@ class Index extends Component
     public string $kind = 'all';
 
     #[Url]
+    public string $status = 'all';
+
+    #[Url]
     public string $sort = 'name';
 
     public function updatingSearch(): void

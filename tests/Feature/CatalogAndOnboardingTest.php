@@ -6,6 +6,7 @@ use App\Enums\ProductKind;
 use App\Enums\TransactionType;
 use App\Livewire\OnboardingTour;
 use App\Livewire\Products\Form as ProductForm;
+use App\Livewire\Products\Index as ProductIndex;
 use App\Models\Product;
 use App\Models\StockTransaction;
 use App\Models\User;
@@ -70,5 +71,19 @@ class CatalogAndOnboardingTest extends TestCase
         $product = Product::query()->where('sku', 'INN-TEST')->firstOrFail();
         $this->assertSame(ProductKind::Inner, $product->kind);
         $this->assertSame('5.000', $product->presentStock());
+    }
+
+    public function test_products_index_loads_with_kind_and_status_filters(): void
+    {
+        $user = User::factory()->accountant()->create();
+
+        $this->actingAs($user)->get(route('products.index'))->assertOk();
+
+        Livewire::actingAs($user)
+            ->test(ProductIndex::class)
+            ->set('kind', 'inner')
+            ->set('status', 'active')
+            ->assertHasNoErrors()
+            ->assertOk();
     }
 }
