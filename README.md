@@ -27,7 +27,7 @@ Excel import is **not** part of the current workflow. Products are added with **
 
 ## Local setup
 
-1. PHP 8.3 with `bcmath`, `mbstring`, `xml`, `curl`, `zip`, `intl`, and `mysql` extensions
+1. PHP 8.3 with `mbstring`, `xml`, `curl`, `zip`, `intl`, and `mysql` extensions. `php8.3-bcmath` is recommended; if it is missing the app uses a built-in decimal polyfill so the dashboard still loads.
 2. Composer, Node.js 22+, MySQL 8
 3. Create a database:
 
