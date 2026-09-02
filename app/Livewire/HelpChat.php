@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Services\StockAssistant;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class HelpChat extends Component
@@ -29,6 +30,16 @@ class HelpChat extends Component
     public function toggle(): void
     {
         $this->open = ! $this->open;
+    }
+
+    #[On('open-help-chat')]
+    public function openChat(?string $prompt = null): void
+    {
+        $this->open = true;
+        if (is_string($prompt) && trim($prompt) !== '') {
+            $this->message = $prompt;
+            $this->send(app(StockAssistant::class));
+        }
     }
 
     public function send(StockAssistant $assistant): void

@@ -16,6 +16,11 @@ new class extends Component
     {
         $this->dispatch('replay-onboarding');
     }
+
+    public function openAssistant(): void
+    {
+        $this->dispatch('open-help-chat');
+    }
 }; ?>
 
 @php
@@ -96,6 +101,7 @@ new class extends Component
             <p class="truncate text-sm font-medium text-white">{{ $user->name }}</p>
             <p class="truncate text-xs text-slate-400">{{ $user->role?->name }}</p>
             <div class="mt-3 flex flex-col gap-1">
+                <button type="button" wire:click="openAssistant" class="text-left text-xs font-medium text-teal-300 hover:text-white">Ask assistant</button>
                 <button type="button" wire:click="replayTour" class="text-left text-xs font-medium text-teal-300 hover:text-white">Replay walkthrough</button>
                 <a href="{{ route('profile') }}" wire:navigate class="text-xs text-slate-400 hover:text-white">Profile</a>
                 <button type="button" wire:click="logout" class="text-left text-xs text-slate-400 hover:text-white">Log out</button>

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Product;
-use App\Models\StockAdjustment;
 use App\Models\User;
 use App\Support\DecimalDisplay;
 use App\Support\StockStatus;
