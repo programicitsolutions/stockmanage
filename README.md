@@ -47,6 +47,18 @@ cp .env.example .env
 php artisan key:generate
 # set DB_* in .env to your MySQL credentials
 php artisan migrate --seed
+```
+
+Compiled CSS/JS lives in `public/build/` (committed so `php artisan serve` works without Node). If you change Tailwind/JS, rebuild:
+
+```bash
+npm install
+npm run build
+```
+
+For live CSS reload while developing UI:
+
+```bash
 npm install
 npm run dev
 ```
@@ -54,8 +66,10 @@ npm run dev
 5. In another terminal:
 
 ```bash
-php artisan serve --host=127.0.0.1 --port=43123
+php artisan serve --host=127.0.0.1 --port=8000
 ```
+
+If you see `ViteManifestNotFoundException` / `public/build/manifest.json` missing, run `npm install && npm run build`, then refresh. Do not use `npm run dev` unless that process stays running.
 
 Run tests with `php artisan test`. Tests use in-memory SQLite.
 
