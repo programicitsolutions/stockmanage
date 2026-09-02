@@ -19,19 +19,37 @@ class StockCalculator
 
     public function forProductId(int $productId): string
     {
+        return $this->forProductIds([$productId])[$productId];
+    }
+
+    /**
+     * @param  array<int, int>  $productIds
+     * @return array<int, string>
+     */
+    public function forProductIds(array $productIds): array
+    {
         $scale = (int) config('stock.quantity_scale', 3);
+        $ids = array_values(array_unique(array_map('intval', $productIds)));
+        $stock = [];
 
-        $rows = StockTransaction::query()
-            ->where('product_id', $productId)
-            ->get(['transaction_type', 'quantity']);
-
-        $stock = '0';
-
-        foreach ($rows as $row) {
-            $stock = bcadd($stock, $row->signedQuantity(), $scale);
+        foreach ($ids as $id) {
+            $stock[$id] = $this->normalize('0', $scale);
         }
 
-        return $this->normalize($stock, $scale);
+        if ($ids === []) {
+            return $stock;
+        }
+
+        $rows = StockTransaction::query()
+            ->whereIn('product_id', $ids)
+            ->get(['product_id', 'transaction_type', 'quantity']);
+
+        foreach ($rows as $row) {
+            $id = (int) $row->product_id;
+            $stock[$id] = bcadd($stock[$id], $row->signedQuantity(), $scale);
+        }
+
+        return $stock;
     }
 
     /**

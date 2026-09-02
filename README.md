@@ -2,7 +2,7 @@
 
 Single-business stock management. Present stock is calculated from a transaction ledger and is **never** typed in by a user.
 
-This repository is **Phase 1 only**: Laravel foundation, authentication, roles, and database architecture. Product screens, stock entry, Excel import, and reports are not built yet.
+This repository is **Phase 2**: foundation plus the daily stock loop (products, live stock, IN/OUT, movement, adjustments, audit). Excel import, landing-price costing UI, and profit reports are still later.
 
 This is not a SaaS product. There is one organisation, two roles, and no tenancy.
 
@@ -18,7 +18,7 @@ Opening stock
 
 `products.opening_stock` is the setup figure for a product. Live available stock is **not** that column. Live stock is `Product::presentStock()`, which delegates to `App\Services\StockCalculator`. Do not copy that logic into controllers.
 
-Ledger rows cannot be updated or deleted. Corrections become new `ADJUSTMENT_IN` / `ADJUSTMENT_OUT` rows (approval UI is a later phase; the `stock_adjustments` table is already in place).
+Ledger rows cannot be updated or deleted. Corrections become new `ADJUSTMENT_IN` / `ADJUSTMENT_OUT` rows after a partner approves an accountant request.
 
 ## Stack
 
@@ -84,14 +84,12 @@ Password for every seeded account: `password`
 
 Public registration is disabled. Add staff later with a seeder or artisan tinker until an admin screen exists.
 
-## Roles (Phase 1)
+## Roles
 
-Simple `roles` table and `users.role_id`. No permission matrix yet.
+Simple `roles` table and `users.role_id`. No permission matrix.
 
-- **Partner** — view dashboard (later: live stock, movements, sales/purchases, profit, audit, adjustment approval)
-- **Accountant** — view dashboard (later: enter stock in/out, purchases, sales, adjustment requests, reports)
-
-Both roles can sign in and open the Phase 1 dashboard placeholder.
+- **Partner** — dashboard, live stock, movement, products (view), catalog (view), audit, approve/reject adjustments
+- **Accountant** — all of the above except approval, plus add/edit products, categories, suppliers, customers, stock in, stock out, and adjustment requests
 
 ## Database
 
@@ -118,17 +116,16 @@ Excel / Google Sheets import is **not** in this phase. Do not invent spreadsheet
 - `App\Models\Product::presentStock()` — the only model API for live stock
 - `App\Models\StockTransaction` — throws if updated or deleted
 - `App\Observers\StockTransactionObserver` — writes `activity_logs`
-- `App\Http\Middleware\EnsureUserHasRole` — alias `role:partner,accountant`
+- `App\Services\ProductCatalog` — create product and post opening stock to the ledger
+- `App\Services\StockAdjustmentService` — request, reject, or approve-and-post adjustments
 
 Negative stock is blocked unless `STOCK_ALLOW_NEGATIVE=true` (default false).
 
-## What is intentionally not built
+## What is intentionally not built yet
 
-- Stock in/out screens
-- Product / supplier / customer CRUD UI
-- Reports and exports
-- Adjustment approval workflow UI
-- Excel mapping/import
+- Excel / Google Sheets import
+- Landing-price cost-line entry (transport, loading) in the UI
+- Profit reports and exports
 - Multi-tenant / SaaS features
 
 ## Remaining environment notes
