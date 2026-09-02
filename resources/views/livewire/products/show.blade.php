@@ -9,7 +9,7 @@
             @endif
         </x-slot:actions>
 
-        <p class="text-sm text-slate-500">{{ $product->sku }} · {{ $product->category?->name ?? 'No category' }} · {{ $product->unit }}
+        <p class="text-sm text-slate-500">{{ $product->sku }} · {{ $product->kind?->label() }} · {{ $product->category?->name ?? 'No category' }} · {{ $product->unit }}
             <x-stock-status-badge :status="$status" />
         </p>
 

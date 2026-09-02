@@ -27,7 +27,7 @@ class Index extends Component
     public string $category = '';
 
     #[Url]
-    public string $status = 'all';
+    public string $kind = 'all';
 
     #[Url]
     public string $sort = 'name';
@@ -38,6 +38,11 @@ class Index extends Component
     }
 
     public function updatingCategory(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingKind(): void
     {
         $this->resetPage();
     }
@@ -58,6 +63,8 @@ class Index extends Component
                 });
             })
             ->when($this->category !== '', fn ($query) => $query->where('category_id', $this->category))
+            ->when($this->kind === 'main', fn ($query) => $query->where('kind', 'main'))
+            ->when($this->kind === 'inner', fn ($query) => $query->where('kind', 'inner'))
             ->when($this->status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($this->status === 'inactive', fn ($query) => $query->where('is_active', false));
 

@@ -16,6 +16,7 @@ class ProductFactory extends Factory
         return [
             'sku' => strtoupper(fake()->unique()->bothify('SKU-####')),
             'name' => fake()->unique()->words(3, true),
+            'kind' => \App\Enums\ProductKind::Main,
             'category_id' => Category::factory(),
             'unit' => fake()->randomElement(['pcs', 'kg', 'box', 'ltr']),
             'opening_stock' => '0.000',

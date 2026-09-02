@@ -6,13 +6,18 @@
             @endif
         </x-slot:actions>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <input wire:model.live.debounce.300ms="search" type="search" placeholder="Search name or SKU" class="w-full rounded-xl border-slate-300 text-sm">
             <select wire:model.live="category" class="rounded-xl border-slate-300 text-sm">
                 <option value="">All categories</option>
                 @foreach ($categories as $category)
                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                 @endforeach
+            </select>
+            <select wire:model.live="kind" class="rounded-xl border-slate-300 text-sm">
+                <option value="all">All types</option>
+                <option value="main">Main products</option>
+                <option value="inner">Inner products</option>
             </select>
             <select wire:model.live="status" class="rounded-xl border-slate-300 text-sm">
                 <option value="all">All statuses</option>
@@ -36,7 +41,7 @@
                         <div class="flex justify-between gap-3">
                             <div>
                                 <a href="{{ route('products.show', $product) }}" wire:navigate class="font-semibold text-slate-900">{{ $product->name }}</a>
-                                <p class="text-xs text-slate-500">{{ $product->sku }} · {{ $product->category?->name ?? 'No category' }}</p>
+                                <p class="text-xs text-slate-500">{{ $product->sku }} · {{ $product->kind?->label() }} · {{ $product->category?->name ?? 'No category' }}</p>
                             </div>
                             <div class="text-right">
                                 <p class="text-sm font-semibold">{{ $formatQty::quantity($product->present_stock_calculated) }} {{ $product->unit }}</p>
@@ -59,6 +64,7 @@
                         <tr>
                             <th class="px-4 py-3 font-medium">SKU</th>
                             <th class="px-4 py-3 font-medium">Name</th>
+                            <th class="px-4 py-3 font-medium">Type</th>
                             <th class="px-4 py-3 font-medium">Category</th>
                             <th class="px-4 py-3 font-medium text-right">Present stock</th>
                             <th class="px-4 py-3 font-medium">Status</th>
@@ -75,6 +81,7 @@
                                         <span class="ml-1 text-xs text-slate-400">Inactive</span>
                                     @endunless
                                 </td>
+                                <td class="px-4 py-3 text-slate-500">{{ $product->kind?->label() ?? 'Main product' }}</td>
                                 <td class="px-4 py-3 text-slate-500">{{ $product->category?->name ?? '—' }}</td>
                                 <td class="px-4 py-3 text-right font-semibold">{{ $formatQty::quantity($product->present_stock_calculated) }} {{ $product->unit }}</td>
                                 <td class="px-4 py-3"><x-stock-status-badge :status="$product->stock_status" /></td>

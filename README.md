@@ -67,6 +67,10 @@ Password for every seeded account: `password`
 
 Public registration is disabled. Admins add staff at **Users**.
 
+The first login opens a welcome popup and a short walkthrough. Replay it from **Replay walkthrough** at the bottom of the sidebar.
+
+`php artisan db:seed` also loads sample **main** products (finished tins, bottles, cartons) and **inner** products (lids, liners, plugs, inserts). Re-seeding does not double opening stock.
+
 ## Accountant workflow
 
 Login → Dashboard → Stock in / Stock out → search product → quantity → Review → Confirm.

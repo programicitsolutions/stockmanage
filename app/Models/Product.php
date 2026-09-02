@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProductKind;
 use App\Services\StockCalculator;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'sku',
     'name',
+    'kind',
     'category_id',
     'unit',
     'opening_stock',
@@ -29,6 +31,7 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'kind' => ProductKind::class,
             'opening_stock' => 'decimal:3',
             'minimum_stock_level' => 'decimal:3',
             'default_purchase_price' => 'decimal:2',

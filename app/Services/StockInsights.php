@@ -21,7 +21,7 @@ class StockInsights
     public function dashboard(?Carbon $from = null, int $trendDays = 30): array
     {
         $from ??= now()->subDays($trendDays - 1)->startOfDay();
-        $products = Product::query()->get(['id', 'name', 'sku', 'category_id', 'unit', 'minimum_stock_level', 'default_purchase_price']);
+        $products = Product::query()->get(['id', 'name', 'sku', 'category_id', 'unit', 'minimum_stock_level', 'default_purchase_price', 'kind']);
         $stock = $this->calculator->forProductIds($products->pluck('id')->all());
 
         $totalQty = '0';
@@ -32,10 +32,18 @@ class StockInsights
         $byCategoryQty = [];
         $top = [];
 
+        $mainCount = 0;
+        $innerCount = 0;
+
         foreach ($products as $product) {
             $present = $stock[$product->id] ?? '0.000';
             $totalQty = bcadd($totalQty, $present, 3);
             $stockValue = bcadd($stockValue, bcmul($present, (string) $product->default_purchase_price, 2), 2);
+            if (($product->kind?->value ?? 'main') === 'inner') {
+                $innerCount++;
+            } else {
+                $mainCount++;
+            }
             $status = StockStatus::for($present, (string) $product->minimum_stock_level);
             if ($status === 'out') {
                 $out++;
@@ -81,6 +89,8 @@ class StockInsights
 
         return [
             'productCount' => $products->count(),
+            'mainCount' => $mainCount,
+            'innerCount' => $innerCount,
             'totalQty' => $totalQty,
             'stockValue' => $stockValue,
             'lowCount' => $low,

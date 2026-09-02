@@ -14,26 +14,63 @@
         <title>{{ $title ?? config('app.name') }}</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <style>[x-cloak]{display:none !important}</style>
     </head>
-    <body class="font-sans antialiased bg-slate-50 text-slate-900">
-        <div class="min-h-screen">
-            <livewire:layout.navigation />
+    <body class="font-sans antialiased bg-slate-100 text-slate-900">
+        <div class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(900px_circle_at_0%_0%,rgba(13,148,136,0.12),transparent_45%),radial-gradient(700px_circle_at_100%_0%,rgba(14,165,233,0.10),transparent_40%)]"></div>
+        <div x-data="{ sidebar: false }" class="min-h-screen lg:flex">
+            <div
+                x-cloak
+                x-show="sidebar"
+                class="fixed inset-0 z-30 bg-slate-950/40 lg:hidden"
+                @click="sidebar = false"
+            ></div>
 
-            @if (isset($header))
-                <header class="bg-white border-b border-slate-200">
-                    <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
+            <div
+                class="fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-200 lg:static lg:z-0 lg:translate-x-0 lg:h-screen lg:sticky lg:top-0"
+                :class="sidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+            >
+                <livewire:layout.navigation />
+            </div>
+
+            <div class="flex min-w-0 flex-1 flex-col lg:pl-0">
+                <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/80 backdrop-blur">
+                    <div class="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <button type="button" class="lg:hidden rounded-xl border border-slate-200 bg-white p-2 text-slate-600" @click="sidebar = true" aria-label="Open menu">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            </button>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-semibold text-slate-900">{{ $title ?? config('app.name') }}</p>
+                                <p class="hidden sm:block truncate text-xs text-slate-500">Ledger-backed stock · {{ now()->timezone(config('app.timezone'))->format('d M Y') }}</p>
+                            </div>
+                        </div>
+                        @if (auth()->user()?->canEnterStock())
+                            <div class="flex gap-2">
+                                <a href="{{ route('stock.in') }}" wire:navigate class="hidden sm:inline-flex rounded-xl bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800">Stock in</a>
+                                <a href="{{ route('stock.out') }}" wire:navigate class="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Stock out</a>
+                            </div>
+                        @endif
                     </div>
                 </header>
-            @endif
 
-            <main class="pb-16 sm:pb-8">
-                {{ $slot }}
-            </main>
+                @if (isset($header))
+                    <div class="border-b border-slate-200 bg-white">
+                        <div class="px-4 py-4 sm:px-6">{{ $header }}</div>
+                    </div>
+                @endif
+
+                <main class="flex-1 pb-16 sm:pb-10">
+                    {{ $slot }}
+                </main>
+            </div>
         </div>
+
+        <livewire:onboarding-tour />
+
         <script>
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {

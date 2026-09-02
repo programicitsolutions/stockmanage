@@ -21,6 +21,8 @@ class Form extends Component
 
     public ?int $category_id = null;
 
+    public string $kind = 'main';
+
     public string $unit = 'pcs';
 
     public string $opening_stock = '0';
@@ -42,6 +44,7 @@ class Form extends Component
             $this->sku = $product->sku;
             $this->name = $product->name;
             $this->category_id = $product->category_id;
+            $this->kind = $product->kind?->value ?? 'main';
             $this->unit = $product->unit;
             $this->opening_stock = (string) $product->opening_stock;
             $this->minimum_stock_level = (string) $product->minimum_stock_level;
@@ -64,6 +67,7 @@ class Form extends Component
             ],
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,id'],
+            'kind' => ['required', Rule::in(['main', 'inner'])],
             'unit' => ['required', 'string', 'max:32'],
             'opening_stock' => ['required', 'numeric', 'min:0'],
             'minimum_stock_level' => ['required', 'numeric', 'min:0'],
@@ -77,6 +81,7 @@ class Form extends Component
                 'sku' => $validated['sku'],
                 'name' => $validated['name'],
                 'category_id' => $validated['category_id'],
+                'kind' => $validated['kind'],
                 'unit' => $validated['unit'],
                 'minimum_stock_level' => $validated['minimum_stock_level'],
                 'default_purchase_price' => $validated['default_purchase_price'],

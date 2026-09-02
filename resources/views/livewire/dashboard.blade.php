@@ -1,75 +1,78 @@
 <div>
     <x-page title="Dashboard" description="Present stock is calculated from the ledger. It cannot be typed into a cell.">
         @if ($pendingAdjustments > 0 || $outCount > 0 || $lowCount > 0)
-            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 space-y-1">
+            <div class="saas-card border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 space-y-1">
                 @if ($pendingAdjustments > 0)
-                    <p><a href="{{ route('adjustments.index') }}" wire:navigate class="font-medium underline">{{ $pendingAdjustments }} pending adjustment{{ $pendingAdjustments === 1 ? '' : 's' }}</a> waiting for approval.</p>
+                    <p><a href="{{ route('adjustments.index') }}" wire:navigate class="font-semibold text-amber-900 underline">{{ $pendingAdjustments }} pending adjustment{{ $pendingAdjustments === 1 ? '' : 's' }}</a> waiting for approval.</p>
                 @endif
                 @if ($outCount > 0)
                     <p>{{ $outCount }} product{{ $outCount === 1 ? '' : 's' }} out of stock.</p>
                 @endif
                 @if ($lowCount > 0)
-                    <p>{{ $lowCount }} product{{ $lowCount === 1 ? '' : 's' }} at or below the configured minimum (critical included).</p>
+                    <p>{{ $lowCount }} product{{ $lowCount === 1 ? '' : 's' }} at or below the configured minimum.</p>
                 @endif
             </div>
         @endif
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <a href="{{ route('products.index') }}" wire:navigate class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Total products</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $productCount }}</p>
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-4" data-tour="tour-dashboard">
+            <a href="{{ route('products.index') }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total products</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $productCount }}</p>
+                <p class="mt-2 text-xs text-slate-500">{{ $mainCount ?? 0 }} main · {{ $innerCount ?? 0 }} inner</p>
             </a>
-            <a href="{{ route('stock.live') }}" wire:navigate class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Available stock</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $formatQty::quantity($totalQty) }}</p>
+            <a href="{{ route('stock.live') }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Available stock</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $formatQty::quantity($totalQty) }}</p>
+                <p class="mt-2 text-xs text-slate-500">From the ledger, not a typed cell</p>
             </a>
-            <a href="{{ route('reports.index') }}" wire:navigate class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Stock value</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $formatMoney::money($stockValue) }}</p>
-                <p class="text-[11px] text-slate-400 mt-1">Qty × default purchase price</p>
+            <a href="{{ route('reports.index') }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Stock value</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $formatMoney::money($stockValue) }}</p>
+                <p class="mt-2 text-xs text-slate-400">Qty × default purchase price</p>
             </a>
-            <a href="{{ route('adjustments.index') }}" wire:navigate class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Pending adjustments</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $pendingAdjustments }}</p>
+            <a href="{{ route('adjustments.index') }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Pending adjustments</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $pendingAdjustments }}</p>
+                <p class="mt-2 text-xs text-slate-500">Need a manager’s approval</p>
             </a>
-            <a href="{{ route('stock.live', ['filter' => 'low']) }}" wire:navigate class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Low / critical</p>
-                <p class="mt-1 text-2xl font-semibold text-amber-800">{{ $lowCount }}</p>
+            <a href="{{ route('stock.live', ['filter' => 'low']) }}" wire:navigate class="saas-card p-5">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Low / critical</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-amber-700">{{ $lowCount }}</p>
             </a>
-            <a href="{{ route('stock.live', ['filter' => 'out']) }}" wire:navigate class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Out of stock</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $outCount }}</p>
+            <a href="{{ route('stock.live', ['filter' => 'out']) }}" wire:navigate class="saas-card p-5">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Out of stock</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $outCount }}</p>
             </a>
-            <div class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Today’s stock in</p>
-                <p class="mt-1 text-2xl font-semibold text-teal-800">+{{ $formatQty::quantity($todayIn) }}</p>
+            <div class="saas-card p-5">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Today’s stock in</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-teal-700">+{{ $formatQty::quantity($todayIn) }}</p>
             </div>
-            <div class="rounded-2xl bg-white border border-slate-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Today’s stock out</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">−{{ $formatQty::quantity($todayOut) }}</p>
+            <div class="saas-card p-5">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Today’s stock out</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">−{{ $formatQty::quantity($todayOut) }}</p>
             </div>
         </div>
 
-        <section class="rounded-2xl bg-teal-800 text-white p-5">
-            <h2 class="font-semibold">Stock principle</h2>
-            <p class="mt-2 font-mono text-sm leading-7 text-teal-50">
+        <section class="overflow-hidden rounded-3xl bg-gradient-to-br from-teal-800 via-teal-900 to-slate-900 p-6 text-white shadow-lg">
+            <p class="text-xs uppercase tracking-[0.2em] text-teal-200">Stock principle</p>
+            <p class="mt-3 font-mono text-sm leading-7 text-teal-50">
                 Opening + Stock IN − Stock OUT ± approved adjustments = Present stock
             </p>
         </section>
 
         @if (auth()->user()->canEnterStock())
             <div class="grid grid-cols-2 gap-3">
-                <x-ui-link :href="route('stock.in')" wire:navigate>Stock in</x-ui-link>
-                <x-ui-link :href="route('stock.out')" variant="secondary" wire:navigate>Stock out</x-ui-link>
+                <x-ui-link :href="route('stock.in')" wire:navigate>Record stock in</x-ui-link>
+                <x-ui-link :href="route('stock.out')" variant="secondary" wire:navigate>Record stock out</x-ui-link>
             </div>
         @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <section class="rounded-2xl bg-white border border-slate-200 p-5">
+            <section class="saas-card p-5">
                 <h2 class="font-semibold text-slate-900">Stock in vs stock out</h2>
                 <canvas id="trendChart" class="mt-3 w-full h-56" height="220"></canvas>
             </section>
-            <section class="rounded-2xl bg-white border border-slate-200 p-5">
+            <section class="saas-card p-5">
                 <h2 class="font-semibold text-slate-900">Stock by category</h2>
                 @if ($categoryBars === [])
                     <p class="mt-3 text-sm text-slate-500">No category stock yet.</p>
@@ -84,12 +87,12 @@
                     </ul>
                 @endif
             </section>
-            <section class="rounded-2xl bg-white border border-slate-200 p-5">
+            <section class="saas-card p-5">
                 <h2 class="font-semibold text-slate-900">Top products by stock</h2>
                 <ul class="mt-3 divide-y divide-slate-100">
                     @forelse ($topProducts as $row)
-                        <li class="py-2 flex justify-between gap-3 text-sm">
-                            <a href="{{ route('products.show', $row['id']) }}" wire:navigate class="truncate">{{ $row['name'] }}</a>
+                        <li class="py-2.5 flex justify-between gap-3 text-sm">
+                            <a href="{{ route('products.show', $row['id']) }}" wire:navigate class="truncate hover:text-teal-800">{{ $row['name'] }}</a>
                             <span class="font-medium">{{ $formatQty::quantity($row['qty']) }} {{ $row['unit'] }}</span>
                         </li>
                     @empty
@@ -97,7 +100,7 @@
                     @endforelse
                 </ul>
             </section>
-            <section class="rounded-2xl bg-white border border-slate-200 p-5">
+            <section class="saas-card p-5">
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="font-semibold text-slate-900">Needs attention</h2>
                     <a href="{{ route('stock.live', ['filter' => 'low']) }}" wire:navigate class="text-sm text-teal-800">Live stock</a>
@@ -124,7 +127,7 @@
         </div>
 
         @if (auth()->user()->isAccountant() && $recentMine->isNotEmpty())
-            <section class="rounded-2xl bg-white border border-slate-200 p-5">
+            <section class="saas-card p-5">
                 <h2 class="font-semibold text-slate-900">Your recent entries</h2>
                 <ul class="mt-3 divide-y divide-slate-100">
                     @foreach ($recentMine as $row)

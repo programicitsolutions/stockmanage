@@ -25,8 +25,8 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <h1 class="text-lg font-semibold text-slate-900">Sign in</h1>
-    <p class="mt-1 mb-5 text-sm text-slate-500">Use the account issued to you. Public registration is disabled.</p>
+    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</h1>
+    <p class="mt-1 mb-6 text-sm text-slate-500">Sign in with the account issued to you. Public registration is disabled.</p>
 
     <x-auth-session-status class="mb-4" :status="session('status')" />
 

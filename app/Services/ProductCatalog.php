@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProductKind;
 use App\Enums\TransactionType;
 use App\Models\Product;
 use App\Models\User;
@@ -16,6 +17,7 @@ class ProductCatalog
      * @param  array{
      *     sku: string,
      *     name: string,
+     *     kind?: \App\Enums\ProductKind|string,
      *     category_id?: int|null,
      *     unit: string,
      *     opening_stock?: numeric-string|int|float,
@@ -31,9 +33,10 @@ class ProductCatalog
             $opening = bcadd((string) ($attributes['opening_stock'] ?? '0'), '0', 3);
 
             $product = Product::query()->create([
-                'sku' => $attributes['sku'],
-                'name' => $attributes['name'],
-                'category_id' => $attributes['category_id'] ?? null,
+            'sku' => $attributes['sku'],
+            'name' => $attributes['name'],
+            'kind' => $attributes['kind'] ?? ProductKind::Main,
+            'category_id' => $attributes['category_id'] ?? null,
                 'unit' => $attributes['unit'],
                 'opening_stock' => $opening,
                 'minimum_stock_level' => $attributes['minimum_stock_level'] ?? '0',

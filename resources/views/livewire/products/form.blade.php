@@ -12,6 +12,25 @@
                 <x-input-error :messages="$errors->get('name')" class="mt-2" />
             </div>
             <div>
+                <x-input-label value="Product type" />
+                <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label class="flex cursor-pointer gap-3 rounded-2xl border p-3 {{ $kind === 'main' ? 'border-teal-600 bg-teal-50' : 'border-slate-200' }}">
+                        <input type="radio" wire:model.live="kind" value="main" class="mt-1 text-teal-700">
+                        <span>
+                            <span class="block text-sm font-semibold">Main product</span>
+                            <span class="block text-xs text-slate-500">Finished goods you sell or issue.</span>
+                        </span>
+                    </label>
+                    <label class="flex cursor-pointer gap-3 rounded-2xl border p-3 {{ $kind === 'inner' ? 'border-teal-600 bg-teal-50' : 'border-slate-200' }}">
+                        <input type="radio" wire:model.live="kind" value="inner" class="mt-1 text-teal-700">
+                        <span>
+                            <span class="block text-sm font-semibold">Inner product</span>
+                            <span class="block text-xs text-slate-500">Lids, liners, plugs, inserts.</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div>
                 <x-input-label for="category_id" value="Category" />
                 <select wire:model="category_id" id="category_id" class="mt-1 block w-full rounded-md border-gray-300">
                     <option value="">No category</option>

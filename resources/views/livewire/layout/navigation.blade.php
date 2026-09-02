@@ -11,111 +11,95 @@ new class extends Component
 
         $this->redirect(route('login'), navigate: true);
     }
+
+    public function replayTour(): void
+    {
+        $this->dispatch('replay-onboarding');
+    }
 }; ?>
 
 @php
-    $links = [
-        ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
-        ['Live stock', route('stock.live'), request()->routeIs('stock.live')],
-        ['Movement', route('stock.movement'), request()->routeIs('stock.movement')],
-        ['Products', route('products.index'), request()->routeIs('products.*')],
-        ['Adjustments', route('adjustments.index'), request()->routeIs('adjustments.*')],
-        ['Reports', route('reports.index'), request()->routeIs('reports.*')],
-        ['Audit', route('audit.index'), request()->routeIs('audit.*')],
+    $user = auth()->user();
+    $groups = [
+        [
+            'label' => 'Overview',
+            'items' => [
+                ['Dashboard', route('dashboard'), request()->routeIs('dashboard'), 'tour-dashboard', true],
+                ['Live stock', route('stock.live'), request()->routeIs('stock.live'), 'tour-live', true],
+                ['Reports', route('reports.index'), request()->routeIs('reports.*'), 'tour-reports', true],
+            ],
+        ],
+        [
+            'label' => 'Operations',
+            'items' => [
+                ['Stock in', route('stock.in'), request()->routeIs('stock.in'), 'tour-stock-in', $user->canEnterStock()],
+                ['Stock out', route('stock.out'), request()->routeIs('stock.out'), 'tour-stock-out', $user->canEnterStock()],
+                ['Movement', route('stock.movement'), request()->routeIs('stock.movement'), 'tour-movement', true],
+                ['Adjustments', route('adjustments.index'), request()->routeIs('adjustments.*'), 'tour-adjustments', true],
+            ],
+        ],
+        [
+            'label' => 'Catalog',
+            'items' => [
+                ['Products', route('products.index'), request()->routeIs('products.*'), 'tour-products', true],
+                ['Categories', route('categories.index'), request()->routeIs('categories.*'), '', true],
+                ['Suppliers', route('suppliers.index'), request()->routeIs('suppliers.*'), '', true],
+                ['Customers', route('customers.index'), request()->routeIs('customers.*'), '', true],
+            ],
+        ],
+        [
+            'label' => 'Control',
+            'items' => [
+                ['Audit', route('audit.index'), request()->routeIs('audit.*'), 'tour-audit', true],
+                ['Users', route('users.index'), request()->routeIs('users.*'), '', $user->canManageUsers()],
+            ],
+        ],
     ];
 @endphp
 
-<nav x-data="{ open: false }" class="bg-white border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16 gap-4">
-            <div class="flex min-w-0 items-center gap-6">
-                <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2 text-teal-800 shrink-0">
-                    <x-application-logo class="block h-8 w-8" />
-                    <span class="font-semibold text-slate-900 hidden xs:inline sm:inline">{{ config('app.name') }}</span>
-                </a>
-                <div class="hidden lg:flex items-center gap-5 overflow-x-auto">
-                    @foreach ($links as [$label, $href, $active])
-                        <x-nav-link :href="$href" :active="$active" wire:navigate>{{ $label }}</x-nav-link>
-                    @endforeach
-                    @if (auth()->user()->canEnterStock())
-                        <x-nav-link :href="route('stock.in')" :active="request()->routeIs('stock.in')" wire:navigate>Stock in</x-nav-link>
-                        <x-nav-link :href="route('stock.out')" :active="request()->routeIs('stock.out')" wire:navigate>Stock out</x-nav-link>
-                    @endif
-                    @if (auth()->user()->canManageUsers())
-                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" wire:navigate>Users</x-nav-link>
-                    @endif
-                    <x-dropdown align="left" width="48">
-                        <x-slot name="trigger">
-                            <button class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700">
-                                Catalog
-                            </button>
-                        </x-slot>
-                        <x-slot name="content">
-                            <x-dropdown-link :href="route('categories.index')" wire:navigate>Categories</x-dropdown-link>
-                            <x-dropdown-link :href="route('suppliers.index')" wire:navigate>Suppliers</x-dropdown-link>
-                            <x-dropdown-link :href="route('customers.index')" wire:navigate>Customers</x-dropdown-link>
-                        </x-slot>
-                    </x-dropdown>
+<aside class="flex h-full min-h-0 w-72 shrink-0 flex-col bg-slate-950 text-slate-200">
+    <div class="flex items-center gap-3 px-5 py-5 border-b border-white/10">
+        <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 min-w-0">
+            <x-application-logo class="h-9 w-9 text-teal-400" />
+            <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-white">{{ config('app.name') }}</p>
+                <p class="truncate text-[11px] text-slate-400">Stock workspace</p>
+            </div>
+        </a>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        @foreach ($groups as $group)
+            @php $visible = collect($group['items'])->contains(fn ($item) => $item[4]); @endphp
+            @if ($visible)
+                <div>
+                    <p class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{{ $group['label'] }}</p>
+                    <div class="space-y-0.5">
+                        @foreach ($group['items'] as [$label, $href, $active, $tour, $show])
+                            @if ($show)
+                                <a
+                                    href="{{ $href }}"
+                                    wire:navigate
+                                    @if ($tour !== '') data-tour="{{ $tour }}" @endif
+                                    class="flex items-center rounded-xl px-3 py-2 text-sm font-medium transition {{ $active ? 'bg-white/10 text-white shadow-inner' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}"
+                                >{{ $label }}</a>
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
-            </div>
+            @endif
+        @endforeach
+    </nav>
 
-            <div class="hidden sm:flex sm:items-center gap-3">
-                <span class="text-xs font-medium text-slate-500 bg-slate-100 rounded-full px-2.5 py-1">
-                    {{ auth()->user()->role?->name }}
-                </span>
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:text-slate-800">
-                            <div x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></div>
-                        </button>
-                    </x-slot>
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile')" wire:navigate>Profile</x-dropdown-link>
-                        <button wire:click="logout" class="w-full text-start">
-                            <x-dropdown-link>Log out</x-dropdown-link>
-                        </button>
-                    </x-slot>
-                </x-dropdown>
-            </div>
-
-            <div class="flex items-center lg:hidden">
-                <button @click="open = ! open" class="p-2 rounded-md text-slate-500 hover:bg-slate-100">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+    <div class="border-t border-white/10 p-4">
+        <div class="rounded-2xl bg-white/5 px-3 py-3">
+            <p class="truncate text-sm font-medium text-white">{{ $user->name }}</p>
+            <p class="truncate text-xs text-slate-400">{{ $user->role?->name }}</p>
+            <div class="mt-3 flex flex-col gap-1">
+                <button type="button" wire:click="replayTour" class="text-left text-xs font-medium text-teal-300 hover:text-white">Replay walkthrough</button>
+                <a href="{{ route('profile') }}" wire:navigate class="text-xs text-slate-400 hover:text-white">Profile</a>
+                <button type="button" wire:click="logout" class="text-left text-xs text-slate-400 hover:text-white">Log out</button>
             </div>
         </div>
     </div>
-
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden lg:hidden border-t border-slate-100">
-        <div class="pt-2 pb-3 space-y-1">
-            @foreach ($links as [$label, $href, $active])
-                <x-responsive-nav-link :href="$href" :active="$active" wire:navigate>{{ $label }}</x-responsive-nav-link>
-            @endforeach
-            @if (auth()->user()->canEnterStock())
-                <x-responsive-nav-link :href="route('stock.in')" :active="request()->routeIs('stock.in')" wire:navigate>Stock in</x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('stock.out')" :active="request()->routeIs('stock.out')" wire:navigate>Stock out</x-responsive-nav-link>
-            @endif
-            @if (auth()->user()->canManageUsers())
-                <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" wire:navigate>Users</x-responsive-nav-link>
-            @endif
-            <x-responsive-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')" wire:navigate>Categories</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('suppliers.index')" :active="request()->routeIs('suppliers.*')" wire:navigate>Suppliers</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('customers.index')" :active="request()->routeIs('customers.*')" wire:navigate>Customers</x-responsive-nav-link>
-        </div>
-        <div class="pt-4 pb-1 border-t border-slate-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-slate-800">{{ auth()->user()->name }}</div>
-                <div class="font-medium text-sm text-slate-500">{{ auth()->user()->email }}</div>
-            </div>
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile')" wire:navigate>Profile</x-responsive-nav-link>
-                <button wire:click="logout" class="w-full text-start">
-                    <x-responsive-nav-link>Log out</x-responsive-nav-link>
-                </button>
-            </div>
-        </div>
-    </div>
-</nav>
+</aside>
