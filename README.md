@@ -73,9 +73,11 @@ The first login opens a welcome popup and a short walkthrough. Replay it from **
 
 ## Accountant workflow
 
-Login → Dashboard → Stock in / Stock out → search product → quantity → Review → Confirm.
+Login → Dashboard → Stock in / Stock out → add lines (SKU or name) → Review → Confirm → print slip.
 
-Stock quantity is never edited on the product form. Opening stock is posted once at product create. Later corrections use Stock in, Stock out, or a physical-count adjustment.
+Stock quantity is never edited on the product form. Opening stock is posted once at product create. Later corrections use Stock in, Stock out, or a physical-count / count sheet.
+
+A **stock assistant** chat bubble can look up a SKU and explain the workflows.
 
 ## Roles (enforced on the server)
 

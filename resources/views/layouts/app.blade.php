@@ -70,6 +70,7 @@
         </div>
 
         <livewire:onboarding-tour />
+        <livewire:help-chat />
 
         <script>
             if ('serviceWorker' in navigator) {

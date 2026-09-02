@@ -15,6 +15,7 @@
             </select>
             <input wire:model.live="from" type="date" class="rounded-xl border-slate-300 text-sm">
             <input wire:model.live="to" type="date" class="rounded-xl border-slate-300 text-sm">
+            <input wire:model.live.debounce.250ms="product_search" type="search" placeholder="Find product by SKU or name" class="rounded-xl border-slate-300 text-sm">
             <select wire:model.live="product_id" class="rounded-xl border-slate-300 text-sm">
                 <option value="">All products</option>
                 @foreach ($products as $product)

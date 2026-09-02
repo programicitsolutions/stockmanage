@@ -15,6 +15,7 @@ use App\Livewire\Reports;
 use App\Livewire\Stock\Entry as StockEntry;
 use App\Livewire\Stock\LiveStock;
 use App\Livewire\Stock\Movement;
+use App\Livewire\Stock\Slip as StockSlip;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -48,6 +49,7 @@ Route::middleware(['auth', 'role:accountant,admin'])->group(function () {
     Route::get('products/{product}/edit', ProductForm::class)->whereNumber('product')->name('products.edit');
     Route::get('stock/in', StockEntry::class)->name('stock.in');
     Route::get('stock/out', StockEntry::class)->name('stock.out');
+    Route::get('stock/slip', StockSlip::class)->name('stock.slip');
 });
 
 require __DIR__.'/auth.php';

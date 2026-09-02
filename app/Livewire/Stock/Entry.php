@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use App\Services\StockCalculator;
 use App\Support\DecimalDisplay;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -41,6 +42,11 @@ class Entry extends Component
 
     public bool $saving = false;
 
+    /**
+     * @var list<array<string, mixed>>
+     */
+    public array $lines = [];
+
     public function mount(): void
     {
         abort_unless(auth()->user()?->canEnterStock(), 403);
@@ -49,7 +55,7 @@ class Entry extends Component
         $this->transaction_date = now()->toDateString();
     }
 
-    public function updatedProductId(StockCalculator $calculator): void
+    public function updatedProductId(): void
     {
         $this->reviewed = false;
 
@@ -77,12 +83,80 @@ class Entry extends Component
     public function selectProduct(int $productId): void
     {
         $this->product_id = $productId;
-        $this->updatedProductId(app(StockCalculator::class));
+        $this->updatedProductId();
+    }
+
+    public function pickExactSku(): void
+    {
+        $code = trim($this->productSearch);
+        if ($code === '') {
+            return;
+        }
+
+        $product = Product::query()->where('is_active', true)
+            ->where(function ($query) use ($code) {
+                $query->where('sku', $code)->orWhere('sku', strtoupper($code));
+            })
+            ->first();
+
+        if ($product) {
+            $this->selectProduct((int) $product->id);
+        }
+    }
+
+    public function addLine(StockCalculator $calculator): void
+    {
+        abort_unless(auth()->user()?->canEnterStock(), 403);
+
+        $this->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $product = Product::query()->findOrFail($this->product_id);
+        $qty = bcadd($this->quantity, '0', 3);
+        $current = $calculator->forProductId((int) $product->id);
+
+        foreach ($this->lines as $i => $line) {
+            if ((int) $line['product_id'] === (int) $product->id) {
+                $this->lines[$i]['quantity'] = bcadd((string) $line['quantity'], $qty, 3);
+                $this->resetLineDraft();
+
+                return;
+            }
+        }
+
+        $this->lines[] = [
+            'product_id' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'unit' => $product->unit,
+            'quantity' => $qty,
+            'unit_price' => $this->unit_price !== '' ? $this->unit_price : null,
+            'current' => $current,
+        ];
+
+        $this->resetLineDraft();
+    }
+
+    public function removeLine(int $index): void
+    {
+        unset($this->lines[$index]);
+        $this->lines = array_values($this->lines);
+        $this->reviewed = false;
     }
 
     public function review(): void
     {
         abort_unless(auth()->user()?->canEnterStock(), 403);
+
+        if ($this->lines !== []) {
+            $this->validate($this->headerRules());
+            $this->reviewed = true;
+
+            return;
+        }
 
         $this->validate($this->rules());
         $this->reviewed = true;
@@ -104,25 +178,10 @@ class Entry extends Component
 
         $this->saving = true;
 
-        $validated = $this->validate($this->rules());
-
-        if (($validated['unit_price'] ?? '') === '') {
-            $validated['unit_price'] = null;
-        }
-
         try {
-            $calculator->record([
-                'product_id' => $validated['product_id'],
-                'transaction_type' => $this->mode === 'in' ? TransactionType::StockIn : TransactionType::StockOut,
-                'quantity' => $validated['quantity'],
-                'unit_price' => $validated['unit_price'] !== '' ? $validated['unit_price'] : null,
-                'reference_number' => $validated['reference_number'] ?: null,
-                'supplier_id' => $this->mode === 'in' ? ($validated['supplier_id'] ?? null) : null,
-                'customer_id' => $this->mode === 'out' ? ($validated['customer_id'] ?? null) : null,
-                'transaction_date' => $validated['transaction_date'],
-                'notes' => $validated['notes'] ?: null,
-                'created_by' => auth()->id(),
-            ]);
+            $ids = $this->lines !== []
+                ? $this->postLines($calculator)
+                : [$this->postSingle($calculator)];
         } catch (InsufficientStockException $exception) {
             $this->saving = false;
             $this->reviewed = false;
@@ -132,24 +191,86 @@ class Entry extends Component
             ]);
         }
 
+        session([
+            'stock_slip' => [
+                'mode' => $this->mode,
+                'reference' => $this->reference_number ?: null,
+                'date' => $this->transaction_date,
+                'notes' => $this->notes ?: null,
+                'ids' => $ids,
+            ],
+        ]);
+
         session()->flash('status', $this->mode === 'in'
             ? 'Stock in posted to the ledger. Present stock increased.'
             : 'Stock out posted to the ledger. Present stock decreased.');
 
-        $this->redirect(route('stock.movement'), navigate: true);
+        $this->redirect(route('stock.slip'), navigate: true);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function postLines(StockCalculator $calculator): array
+    {
+        $this->validate($this->headerRules());
+
+        return DB::transaction(function () use ($calculator) {
+            $ids = [];
+            foreach ($this->lines as $line) {
+                $ids[] = $calculator->record($this->payload(
+                    (int) $line['product_id'],
+                    (string) $line['quantity'],
+                    $line['unit_price'] ?? null,
+                ))->id;
+            }
+
+            return $ids;
+        });
+    }
+
+    private function postSingle(StockCalculator $calculator): int
+    {
+        $validated = $this->validate($this->rules());
+
+        if (($validated['unit_price'] ?? '') === '') {
+            $validated['unit_price'] = null;
+        }
+
+        return $calculator->record($this->payload(
+            (int) $validated['product_id'],
+            (string) $validated['quantity'],
+            $validated['unit_price'] !== '' ? $validated['unit_price'] : null,
+        ))->id;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function rules(): array
+    private function payload(int $productId, string $quantity, mixed $unitPrice): array
+    {
+        return [
+            'product_id' => $productId,
+            'transaction_type' => $this->mode === 'in' ? TransactionType::StockIn : TransactionType::StockOut,
+            'quantity' => $quantity,
+            'unit_price' => $unitPrice !== '' ? $unitPrice : null,
+            'reference_number' => $this->reference_number ?: null,
+            'supplier_id' => $this->mode === 'in' ? $this->supplier_id : null,
+            'customer_id' => $this->mode === 'out' ? $this->customer_id : null,
+            'transaction_date' => $this->transaction_date,
+            'notes' => $this->notes ?: null,
+            'created_by' => auth()->id(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function headerRules(): array
     {
         $rules = [
-            'product_id' => ['required', 'exists:products,id'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit_price' => ['nullable', 'numeric', 'min:0'],
-            'reference_number' => ['nullable', 'string', 'max:64'],
             'transaction_date' => ['required', 'date'],
+            'reference_number' => ['nullable', 'string', 'max:64'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
 
@@ -162,25 +283,47 @@ class Entry extends Component
         return $rules;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function rules(): array
+    {
+        return array_merge($this->headerRules(), [
+            'product_id' => ['required', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+    }
+
+    private function resetLineDraft(): void
+    {
+        $this->product_id = null;
+        $this->productSearch = '';
+        $this->quantity = '';
+        $this->unit_price = '';
+        $this->reviewed = false;
+    }
+
     public function render(StockCalculator $calculator): View
     {
+        $previewLines = [];
+        foreach ($this->lines as $line) {
+            $current = $calculator->forProductId((int) $line['product_id']);
+            $qty = (string) $line['quantity'];
+            $projected = $this->mode === 'in'
+                ? bcadd($current, $qty, 3)
+                : bcsub($current, $qty, 3);
+            $previewLines[] = array_merge($line, [
+                'current' => $current,
+                'projected' => $projected,
+            ]);
+        }
+
         $presentRaw = $this->product_id
             ? $calculator->forProductId((int) $this->product_id)
             : null;
 
-        $quantity = $this->quantity !== '' && is_numeric($this->quantity)
-            ? bcadd($this->quantity, '0', 3)
-            : null;
-
-        $projected = null;
-        if ($presentRaw !== null && $quantity !== null && bccomp($quantity, '0', 3) === 1) {
-            $projected = $this->mode === 'in'
-                ? bcadd($presentRaw, $quantity, 3)
-                : bcsub($presentRaw, $quantity, 3);
-        }
-
         $productQuery = Product::query()->where('is_active', true)->orderBy('name');
-
         if ($this->productSearch !== '' && ! $this->product_id) {
             $term = '%'.$this->productSearch.'%';
             $productQuery->where(function ($query) use ($term) {
@@ -188,19 +331,13 @@ class Entry extends Component
             });
         }
 
-        $selected = $this->product_id
-            ? Product::query()->find($this->product_id)
-            : null;
-
         return view('livewire.stock.entry', [
-            'products' => $productQuery->limit(20)->get(),
-            'selectedProduct' => $selected,
+            'products' => $productQuery->limit(12)->get(),
+            'selectedProduct' => $this->product_id ? Product::query()->find($this->product_id) : null,
             'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(),
             'customers' => Customer::query()->where('is_active', true)->orderBy('name')->get(),
             'present' => $presentRaw !== null ? DecimalDisplay::quantity($presentRaw) : null,
-            'presentRaw' => $presentRaw,
-            'quantityNormalized' => $quantity,
-            'projected' => $projected,
+            'previewLines' => $previewLines,
             'formatQty' => DecimalDisplay::class,
         ])->title($this->mode === 'in' ? 'Stock in' : 'Stock out');
     }

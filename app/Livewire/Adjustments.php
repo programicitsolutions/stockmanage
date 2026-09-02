@@ -39,6 +39,11 @@ class Adjustments extends Component
 
     public bool $saving = false;
 
+    /**
+     * @var list<array<string, mixed>>
+     */
+    public array $countLines = [];
+
     public function selectProduct(int $productId): void
     {
         $this->product_id = $productId;
@@ -118,6 +123,82 @@ class Adjustments extends Component
         session()->flash('status', 'Adjustment requested. A manager or admin must approve it before stock changes.');
     }
 
+    public function addCountLine(StockCalculator $calculator): void
+    {
+        abort_unless(auth()->user()?->canRequestAdjustments(), 403);
+
+        $validated = $this->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'physical_qty' => ['required', 'numeric', 'min:0'],
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $system = $calculator->forProductId((int) $validated['product_id']);
+        $physical = bcadd((string) $validated['physical_qty'], '0', 3);
+        $difference = bcsub($physical, $system, 3);
+
+        if (bccomp($difference, '0', 3) === 0) {
+            throw ValidationException::withMessages([
+                'physical_qty' => 'Physical count matches system stock. No adjustment is needed.',
+            ]);
+        }
+
+        $product = Product::query()->findOrFail($validated['product_id']);
+
+        $this->countLines[] = [
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'system' => $system,
+            'physical' => $physical,
+            'difference' => $difference,
+            'reason' => $validated['reason'],
+            'notes' => $this->notes ?: null,
+        ];
+
+        $this->reset('product_id', 'productSearch', 'physical_qty');
+    }
+
+    public function removeCountLine(int $index): void
+    {
+        unset($this->countLines[$index]);
+        $this->countLines = array_values($this->countLines);
+    }
+
+    public function submitCountSheet(StockAdjustmentService $service): void
+    {
+        abort_unless(auth()->user()?->canRequestAdjustments(), 403);
+
+        if ($this->countLines === []) {
+            throw ValidationException::withMessages([
+                'physical_qty' => 'Add at least one counted product to the sheet.',
+            ]);
+        }
+
+        foreach ($this->countLines as $line) {
+            $difference = (string) $line['difference'];
+            $direction = bccomp($difference, '0', 3) === 1
+                ? TransactionType::AdjustmentIn
+                : TransactionType::AdjustmentOut;
+            $absQty = bccomp($difference, '0', 3) === -1
+                ? bcmul($difference, '-1', 3)
+                : $difference;
+
+            $service->request([
+                'product_id' => $line['product_id'],
+                'direction' => $direction,
+                'quantity' => $absQty,
+                'reason' => $line['reason'],
+                'notes' => $line['notes'] ?? null,
+                'system_qty' => $line['system'],
+                'physical_qty' => $line['physical'],
+            ], auth()->user());
+        }
+
+        $this->countLines = [];
+        session()->flash('status', 'Count sheet submitted. Each line is a pending adjustment for a manager to approve.');
+    }
+
     public function approve(int $adjustmentId, StockAdjustmentService $service): void
     {
         abort_unless(auth()->user()?->canApproveAdjustments(), 403);
@@ -185,6 +266,7 @@ class Adjustments extends Component
             'selectedProduct' => $this->product_id ? Product::query()->find($this->product_id) : null,
             'systemQty' => $systemQty,
             'difference' => $difference,
+            'countLines' => $this->countLines,
             'formatQty' => DecimalDisplay::class,
         ]);
     }

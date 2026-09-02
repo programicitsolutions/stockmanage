@@ -36,6 +36,9 @@ class Reports extends Component
     public string $to = '';
 
     #[Url]
+    public string $product_search = '';
+
+    #[Url]
     public string $product_id = '';
 
     #[Url]
@@ -75,7 +78,16 @@ class Reports extends Component
     public function render(StockCalculator $calculator, StockInsights $insights): View
     {
         return view('livewire.reports', [
-            'products' => Product::query()->orderBy('name')->get(['id', 'name', 'sku']),
+            'products' => Product::query()
+                ->orderBy('name')
+                ->when($this->product_search !== '', function ($query) {
+                    $term = '%'.$this->product_search.'%';
+                    $query->where(function ($query) use ($term) {
+                        $query->where('name', 'like', $term)->orWhere('sku', 'like', $term);
+                    });
+                })
+                ->limit(80)
+                ->get(['id', 'name', 'sku']),
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'types' => TransactionType::cases(),

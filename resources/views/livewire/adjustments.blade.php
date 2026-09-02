@@ -61,8 +61,24 @@
                     </div>
                 </details>
 
-                <x-primary-button wire:loading.attr="disabled" :disabled="$saving">Submit adjustment request</x-primary-button>
+                <x-primary-button wire:loading.attr="disabled" :disabled="$saving">Submit this product</x-primary-button>
+                <button type="button" wire:click="addCountLine" class="rounded-xl border border-slate-300 px-4 py-2 text-sm">Add to count sheet</button>
             </form>
+
+            @if ($countLines !== [])
+                <div class="saas-card p-5 max-w-2xl">
+                    <h2 class="font-semibold">Count sheet ({{ count($countLines) }} products)</h2>
+                    <ul class="mt-3 divide-y divide-slate-100 text-sm">
+                        @foreach ($countLines as $i => $line)
+                            <li class="py-2 flex justify-between gap-3">
+                                <span>{{ $line['sku'] }} · {{ $line['name'] }} · physical {{ $formatQty::quantity($line['physical']) }} ({{ bccomp($line['difference'], '0', 3) === 1 ? '+' : '' }}{{ $formatQty::quantity($line['difference']) }})</span>
+                                <button type="button" wire:click="removeCountLine({{ $i }})" class="text-xs text-red-700">Remove</button>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <button type="button" wire:click="submitCountSheet" class="mt-3 rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Submit count sheet</button>
+                </div>
+            @endif
         @endif
 
         @if ($adjustments->isEmpty())
