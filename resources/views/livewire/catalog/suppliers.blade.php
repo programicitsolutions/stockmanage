@@ -1,6 +1,6 @@
 <div>
     <x-page title="Suppliers">
-        @if (auth()->user()->isAccountant())
+        @if (auth()->user()->canManageProducts())
             <form wire:submit="save" class="rounded-2xl bg-white border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <x-text-input wire:model="name" class="sm:col-span-2 w-full" placeholder="Supplier name" />
                 <x-text-input wire:model="code" class="w-full" placeholder="Code" />

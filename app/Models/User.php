@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'is_active', 'receives_daily_summary'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -25,6 +25,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'receives_daily_summary' => 'boolean',
         ];
     }
 
@@ -56,6 +57,31 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role?->slug === RoleSlug::Admin;
+    }
+
+    public function canManageProducts(): bool
+    {
+        return $this->isAccountant() || $this->isAdmin();
+    }
+
+    public function canEnterStock(): bool
+    {
+        return $this->isAccountant() || $this->isAdmin();
+    }
+
+    public function canRequestAdjustments(): bool
+    {
+        return $this->isAccountant() || $this->isAdmin();
+    }
+
+    public function canApproveAdjustments(): bool
+    {
+        return $this->isPartner() || $this->isAdmin();
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->isAdmin();
     }
 
     public function hasRole(RoleSlug|string $role): bool

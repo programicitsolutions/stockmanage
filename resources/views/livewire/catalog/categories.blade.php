@@ -1,6 +1,6 @@
 <div>
     <x-page title="Categories" description="Group products. Excel mapping is not part of this phase.">
-        @if (auth()->user()->isAccountant())
+        @if (auth()->user()->canManageProducts())
             <form wire:submit="save" class="rounded-2xl bg-white border border-slate-200 p-4 flex flex-col sm:flex-row gap-3">
                 <x-text-input wire:model="name" class="w-full" placeholder="Category name" />
                 <x-primary-button>Add</x-primary-button>

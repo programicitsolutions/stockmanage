@@ -20,6 +20,7 @@ new class extends Component
         ['Movement', route('stock.movement'), request()->routeIs('stock.movement')],
         ['Products', route('products.index'), request()->routeIs('products.*')],
         ['Adjustments', route('adjustments.index'), request()->routeIs('adjustments.*')],
+        ['Reports', route('reports.index'), request()->routeIs('reports.*')],
         ['Audit', route('audit.index'), request()->routeIs('audit.*')],
     ];
 @endphp
@@ -36,12 +37,12 @@ new class extends Component
                     @foreach ($links as [$label, $href, $active])
                         <x-nav-link :href="$href" :active="$active" wire:navigate>{{ $label }}</x-nav-link>
                     @endforeach
-                    @if (auth()->user()->isAdmin())
-                        <x-nav-link :href="route('import.excel')" :active="request()->routeIs('import.*')" wire:navigate>Import Excel</x-nav-link>
-                    @endif
-                    @if (auth()->user()->isAccountant())
+                    @if (auth()->user()->canEnterStock())
                         <x-nav-link :href="route('stock.in')" :active="request()->routeIs('stock.in')" wire:navigate>Stock in</x-nav-link>
                         <x-nav-link :href="route('stock.out')" :active="request()->routeIs('stock.out')" wire:navigate>Stock out</x-nav-link>
+                    @endif
+                    @if (auth()->user()->canManageUsers())
+                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" wire:navigate>Users</x-nav-link>
                     @endif
                     <x-dropdown align="left" width="48">
                         <x-slot name="trigger">
@@ -93,12 +94,12 @@ new class extends Component
             @foreach ($links as [$label, $href, $active])
                 <x-responsive-nav-link :href="$href" :active="$active" wire:navigate>{{ $label }}</x-responsive-nav-link>
             @endforeach
-            @if (auth()->user()->isAdmin())
-                <x-responsive-nav-link :href="route('import.excel')" :active="request()->routeIs('import.*')" wire:navigate>Import Excel</x-responsive-nav-link>
-            @endif
-            @if (auth()->user()->isAccountant())
+            @if (auth()->user()->canEnterStock())
                 <x-responsive-nav-link :href="route('stock.in')" :active="request()->routeIs('stock.in')" wire:navigate>Stock in</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('stock.out')" :active="request()->routeIs('stock.out')" wire:navigate>Stock out</x-responsive-nav-link>
+            @endif
+            @if (auth()->user()->canManageUsers())
+                <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" wire:navigate>Users</x-responsive-nav-link>
             @endif
             <x-responsive-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')" wire:navigate>Categories</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('suppliers.index')" :active="request()->routeIs('suppliers.*')" wire:navigate>Suppliers</x-responsive-nav-link>

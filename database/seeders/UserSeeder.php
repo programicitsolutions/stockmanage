@@ -24,6 +24,7 @@ class UserSeeder extends Seeder
                     'role_id' => $partnerRole->id,
                     'email_verified_at' => now(),
                     'is_active' => true,
+                    'receives_daily_summary' => true,
                 ],
             );
         }
@@ -36,6 +37,7 @@ class UserSeeder extends Seeder
                 'role_id' => $accountantRole->id,
                 'email_verified_at' => now(),
                 'is_active' => true,
+                'receives_daily_summary' => false,
             ],
         );
 
@@ -47,6 +49,7 @@ class UserSeeder extends Seeder
                 'role_id' => $adminRole->id,
                 'email_verified_at' => now(),
                 'is_active' => true,
+                'receives_daily_summary' => true,
             ],
         );
     }

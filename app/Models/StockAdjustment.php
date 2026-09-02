@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'reviewed_by',
     'reviewed_at',
     'applied_transaction_id',
+    'system_qty',
+    'physical_qty',
 ])]
 class StockAdjustment extends Model
 {
@@ -31,6 +33,8 @@ class StockAdjustment extends Model
     {
         return [
             'quantity' => 'decimal:3',
+            'system_qty' => 'decimal:3',
+            'physical_qty' => 'decimal:3',
             'status' => AdjustmentStatus::class,
             'reviewed_at' => 'datetime',
             'direction' => TransactionType::class,

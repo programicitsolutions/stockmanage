@@ -8,6 +8,10 @@
                     <option value="{{ $case->value }}">{{ $case->label() }}</option>
                 @endforeach
             </select>
+            <select wire:model.live="mine" class="rounded-xl border-slate-300 text-sm">
+                <option value="">Everyone’s entries</option>
+                <option value="1">My entries</option>
+            </select>
         </div>
 
         @if ($movements->isEmpty())

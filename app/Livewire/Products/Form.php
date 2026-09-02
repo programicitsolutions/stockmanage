@@ -35,7 +35,7 @@ class Form extends Component
 
     public function mount(?Product $product = null): void
     {
-        abort_unless(auth()->user()?->isAccountant(), 403);
+        abort_unless(auth()->user()?->canManageProducts(), 403);
 
         if ($product?->exists) {
             $this->productId = $product->id;
@@ -53,7 +53,7 @@ class Form extends Component
 
     public function save(ProductCatalog $catalog): void
     {
-        abort_unless(auth()->user()?->isAccountant(), 403);
+        abort_unless(auth()->user()?->canManageProducts(), 403);
 
         $validated = $this->validate([
             'sku' => [

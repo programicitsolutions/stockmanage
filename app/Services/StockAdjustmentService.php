@@ -42,6 +42,14 @@ class StockAdjustmentService
             ]);
         }
 
+        $systemQty = array_key_exists('system_qty', $attributes) && $attributes['system_qty'] !== null
+            ? bcadd((string) $attributes['system_qty'], '0', 3)
+            : $this->calculator->forProductId((int) $attributes['product_id']);
+
+        $physicalQty = array_key_exists('physical_qty', $attributes) && $attributes['physical_qty'] !== null
+            ? bcadd((string) $attributes['physical_qty'], '0', 3)
+            : null;
+
         return StockAdjustment::query()->create([
             'product_id' => $attributes['product_id'],
             'direction' => $direction,
@@ -50,11 +58,19 @@ class StockAdjustmentService
             'reason' => $attributes['reason'],
             'notes' => $attributes['notes'] ?? null,
             'requested_by' => $actor->id,
+            'system_qty' => $systemQty,
+            'physical_qty' => $physicalQty,
         ]);
     }
 
     public function approveAndApply(StockAdjustment $adjustment, User $actor): StockAdjustment
     {
+        if ($actor->id === $adjustment->requested_by) {
+            throw ValidationException::withMessages([
+                'status' => 'You cannot approve or reject an adjustment you requested.',
+            ]);
+        }
+
         if ($adjustment->status !== AdjustmentStatus::Pending) {
             throw ValidationException::withMessages([
                 'status' => 'Only pending adjustments can be approved.',
@@ -85,6 +101,12 @@ class StockAdjustmentService
 
     public function reject(StockAdjustment $adjustment, User $actor, ?string $notes = null): StockAdjustment
     {
+        if ($actor->id === $adjustment->requested_by) {
+            throw ValidationException::withMessages([
+                'status' => 'You cannot approve or reject an adjustment you requested.',
+            ]);
+        }
+
         if ($adjustment->status !== AdjustmentStatus::Pending) {
             throw ValidationException::withMessages([
                 'status' => 'Only pending adjustments can be rejected.',

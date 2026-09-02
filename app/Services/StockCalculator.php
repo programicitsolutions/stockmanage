@@ -53,6 +53,68 @@ class StockCalculator
     }
 
     /**
+     * Opening + IN − OUT ± adjustments from the same ledger used for present stock.
+     *
+     * @return array{
+     *     opening: string,
+     *     stock_in: string,
+     *     stock_out: string,
+     *     adjustments: string,
+     *     present: string,
+     *     movements: list<array<string, mixed>>
+     * }
+     */
+    public function ledgerSummary(int $productId): array
+    {
+        $scale = (int) config('stock.quantity_scale', 3);
+        $opening = $this->normalize('0', $scale);
+        $stockIn = $this->normalize('0', $scale);
+        $stockOut = $this->normalize('0', $scale);
+        $adjustments = $this->normalize('0', $scale);
+        $balance = $this->normalize('0', $scale);
+        $movements = [];
+
+        $rows = StockTransaction::query()
+            ->with('createdBy')
+            ->where('product_id', $productId)
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($rows as $row) {
+            $signed = $row->signedQuantity();
+            $balance = bcadd($balance, $signed, $scale);
+
+            match ($row->transaction_type) {
+                TransactionType::Opening => $opening = bcadd($opening, (string) $row->quantity, $scale),
+                TransactionType::StockIn => $stockIn = bcadd($stockIn, (string) $row->quantity, $scale),
+                TransactionType::StockOut => $stockOut = bcadd($stockOut, (string) $row->quantity, $scale),
+                TransactionType::AdjustmentIn, TransactionType::AdjustmentOut => $adjustments = bcadd($adjustments, $signed, $scale),
+            };
+
+            $movements[] = [
+                'id' => $row->id,
+                'date' => $row->transaction_date?->toDateString(),
+                'type' => $row->transaction_type,
+                'quantity' => $signed,
+                'user' => $row->createdBy?->name,
+                'reference' => $row->reference_number,
+                'notes' => $row->notes,
+                'balance' => $balance,
+            ];
+        }
+
+        return [
+            'opening' => $opening,
+            'stock_in' => $stockIn,
+            'stock_out' => $stockOut,
+            'adjustments' => $adjustments,
+            'present' => $balance,
+            'movements' => $movements,
+        ];
+    }
+
+    /**
      * Persist a ledger row. Present stock is never written to products.
      *
      * @param  array{
@@ -81,36 +143,38 @@ class StockCalculator
             throw new InvalidStockQuantityException('Quantity must be greater than zero.');
         }
 
-        $product = Product::query()->findOrFail($attributes['product_id']);
+        return DB::transaction(function () use ($attributes, $type, $quantity, $scale) {
+            $product = Product::query()->lockForUpdate()->findOrFail($attributes['product_id']);
 
-        if ($type === TransactionType::Opening) {
-            $existingOpening = StockTransaction::query()
-                ->where('product_id', $product->id)
-                ->where('transaction_type', TransactionType::Opening)
-                ->exists();
+            if ($type === TransactionType::Opening) {
+                $existingOpening = StockTransaction::query()
+                    ->where('product_id', $product->id)
+                    ->where('transaction_type', TransactionType::Opening)
+                    ->lockForUpdate()
+                    ->exists();
 
-            if ($existingOpening) {
-                throw ValidationException::withMessages([
-                    'transaction_type' => 'Opening stock has already been recorded for this product.',
-                ]);
+                if ($existingOpening) {
+                    throw ValidationException::withMessages([
+                        'transaction_type' => 'Opening stock has already been recorded for this product.',
+                    ]);
+                }
             }
-        }
 
-        return DB::transaction(function () use ($attributes, $type, $quantity, $product, $scale) {
+            $before = $this->forProduct($product);
+
             if (! $type->increasesStock() && ! config('stock.allow_negative_stock')) {
-                $available = $this->forProduct($product);
-                $projected = bcsub($available, $quantity, $scale);
+                $projected = bcsub($before, $quantity, $scale);
 
                 if (bccomp($projected, '0', $scale) === -1) {
                     throw InsufficientStockException::forProduct(
                         $product->name,
-                        $available,
+                        $before,
                         $quantity,
                     );
                 }
             }
 
-            return StockTransaction::query()->create([
+            $transaction = StockTransaction::query()->create([
                 'product_id' => $product->id,
                 'transaction_type' => $type,
                 'quantity' => $quantity,
@@ -123,6 +187,8 @@ class StockCalculator
                 'created_by' => $attributes['created_by'],
                 'excel_import_id' => $attributes['excel_import_id'] ?? null,
             ]);
+
+            return $transaction;
         });
     }
 

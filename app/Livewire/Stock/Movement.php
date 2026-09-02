@@ -24,7 +24,15 @@ class Movement extends Component
     #[Url]
     public string $type = '';
 
+    #[Url]
+    public string $mine = '';
+
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingType(): void
     {
         $this->resetPage();
     }
@@ -44,6 +52,7 @@ class Movement extends Component
                 });
             })
             ->when($this->type !== '', fn ($query) => $query->where('transaction_type', $this->type))
+            ->when($this->mine === '1', fn ($query) => $query->where('created_by', auth()->id()))
             ->latest('transaction_date')
             ->latest('id')
             ->paginate(20);

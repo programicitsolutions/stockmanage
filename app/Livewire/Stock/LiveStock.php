@@ -5,6 +5,7 @@ namespace App\Livewire\Stock;
 use App\Models\Product;
 use App\Services\StockCalculator;
 use App\Support\DecimalDisplay;
+use App\Support\StockStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Layout;
@@ -47,21 +48,29 @@ class LiveStock extends Component
             })
             ->orderBy('name');
 
-        if ($this->filter === 'low') {
+        if (in_array($this->filter, ['low', 'critical', 'out'], true)) {
             $all = $base->get();
             $stock = $calculator->forProductIds($all->pluck('id')->all());
-            $low = $all->filter(function (Product $product) use ($stock) {
+            $filtered = $all->filter(function (Product $product) use ($stock) {
                 $present = $stock[$product->id] ?? '0.000';
+                $status = StockStatus::for($present, (string) $product->minimum_stock_level);
                 $product->setAttribute('present_stock_calculated', $present);
+                $product->setAttribute('stock_status', $status);
+                $product->setAttribute('is_low', in_array($status, ['low', 'critical', 'out'], true));
 
-                return bccomp($present, (string) $product->minimum_stock_level, 3) === -1;
+                return match ($this->filter) {
+                    'low' => in_array($status, ['low', 'critical'], true),
+                    'critical' => $status === 'critical',
+                    'out' => $status === 'out',
+                    default => true,
+                };
             })->values();
 
             $page = LengthAwarePaginator::resolveCurrentPage();
             $perPage = 20;
             $products = new LengthAwarePaginator(
-                $low->forPage($page, $perPage)->values(),
-                $low->count(),
+                $filtered->forPage($page, $perPage)->values(),
+                $filtered->count(),
                 $perPage,
                 $page,
                 ['path' => request()->url(), 'query' => request()->query()]
@@ -72,11 +81,10 @@ class LiveStock extends Component
             $products->setCollection(
                 $products->getCollection()->map(function (Product $product) use ($stock) {
                     $present = $stock[$product->id] ?? '0.000';
+                    $status = StockStatus::for($present, (string) $product->minimum_stock_level);
                     $product->setAttribute('present_stock_calculated', $present);
-                    $product->setAttribute(
-                        'is_low',
-                        bccomp($present, (string) $product->minimum_stock_level, 3) === -1
-                    );
+                    $product->setAttribute('stock_status', $status);
+                    $product->setAttribute('is_low', in_array($status, ['low', 'critical', 'out'], true));
 
                     return $product;
                 })

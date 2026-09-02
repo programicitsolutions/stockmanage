@@ -7,6 +7,7 @@ use App\Exceptions\InsufficientStockException;
 use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Services\StockAdjustmentService;
+use App\Services\StockCalculator;
 use App\Support\DecimalDisplay;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -24,38 +25,102 @@ class Adjustments extends Component
 
     public ?int $product_id = null;
 
+    public string $productSearch = '';
+
     public string $direction = 'ADJUSTMENT_IN';
 
     public string $quantity = '';
+
+    public string $physical_qty = '';
 
     public string $reason = '';
 
     public string $notes = '';
 
-    public function requestAdjustment(StockAdjustmentService $service): void
+    public bool $saving = false;
+
+    public function selectProduct(int $productId): void
     {
-        abort_unless(auth()->user()?->isAccountant(), 403);
+        $this->product_id = $productId;
+        $product = Product::query()->find($productId);
+        $this->productSearch = $product ? $product->sku.' — '.$product->name : '';
+    }
 
-        $validated = $this->validate([
-            'product_id' => ['required', 'exists:products,id'],
-            'direction' => ['required', Rule::in([
-                TransactionType::AdjustmentIn->value,
-                TransactionType::AdjustmentOut->value,
-            ])],
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'reason' => ['required', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-        ]);
+    public function requestAdjustment(StockAdjustmentService $service, StockCalculator $calculator): void
+    {
+        abort_unless(auth()->user()?->canRequestAdjustments(), 403);
 
-        $service->request($validated, auth()->user());
-        $this->reset('product_id', 'quantity', 'reason', 'notes');
+        if ($this->saving) {
+            return;
+        }
+
+        $this->saving = true;
+
+        try {
+            if ($this->physical_qty !== '') {
+                $validated = $this->validate([
+                    'product_id' => ['required', 'exists:products,id'],
+                    'physical_qty' => ['required', 'numeric', 'min:0'],
+                    'reason' => ['required', 'string', 'max:255'],
+                    'notes' => ['nullable', 'string', 'max:2000'],
+                ]);
+
+                $system = $calculator->forProductId((int) $validated['product_id']);
+                $physical = bcadd((string) $validated['physical_qty'], '0', 3);
+                $difference = bcsub($physical, $system, 3);
+
+                if (bccomp($difference, '0', 3) === 0) {
+                    throw ValidationException::withMessages([
+                        'physical_qty' => 'Physical count matches system stock. No adjustment is needed.',
+                    ]);
+                }
+
+                $direction = bccomp($difference, '0', 3) === 1
+                    ? TransactionType::AdjustmentIn
+                    : TransactionType::AdjustmentOut;
+
+                $absQty = bccomp($difference, '0', 3) === -1
+                    ? bcmul($difference, '-1', 3)
+                    : $difference;
+
+                $service->request([
+                    'product_id' => $validated['product_id'],
+                    'direction' => $direction,
+                    'quantity' => $absQty,
+                    'reason' => $validated['reason'],
+                    'notes' => $validated['notes'] ?? null,
+                    'system_qty' => $system,
+                    'physical_qty' => $physical,
+                ], auth()->user());
+            } else {
+                $validated = $this->validate([
+                    'product_id' => ['required', 'exists:products,id'],
+                    'direction' => ['required', Rule::in([
+                        TransactionType::AdjustmentIn->value,
+                        TransactionType::AdjustmentOut->value,
+                    ])],
+                    'quantity' => ['required', 'numeric', 'gt:0'],
+                    'reason' => ['required', 'string', 'max:255'],
+                    'notes' => ['nullable', 'string', 'max:2000'],
+                ]);
+
+                $service->request($validated, auth()->user());
+            }
+        } catch (ValidationException $exception) {
+            $this->saving = false;
+
+            throw $exception;
+        }
+
+        $this->reset('product_id', 'productSearch', 'quantity', 'physical_qty', 'reason', 'notes');
         $this->direction = TransactionType::AdjustmentIn->value;
-        session()->flash('status', 'Adjustment requested. A partner must approve it before stock changes.');
+        $this->saving = false;
+        session()->flash('status', 'Adjustment requested. A manager or admin must approve it before stock changes.');
     }
 
     public function approve(int $adjustmentId, StockAdjustmentService $service): void
     {
-        abort_unless(auth()->user()?->isPartner(), 403);
+        abort_unless(auth()->user()?->canApproveAdjustments(), 403);
 
         $adjustment = StockAdjustment::query()->findOrFail($adjustmentId);
 
@@ -65,6 +130,10 @@ class Adjustments extends Component
             throw ValidationException::withMessages([
                 'approve' => $exception->getMessage(),
             ]);
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages([
+                'approve' => $exception->validator->errors()->first() ?: 'This adjustment cannot be approved.',
+            ]);
         }
 
         session()->flash('status', 'Adjustment approved and posted to the ledger.');
@@ -72,20 +141,50 @@ class Adjustments extends Component
 
     public function reject(int $adjustmentId, StockAdjustmentService $service): void
     {
-        abort_unless(auth()->user()?->isPartner(), 403);
+        abort_unless(auth()->user()?->canApproveAdjustments(), 403);
 
-        $service->reject(StockAdjustment::query()->findOrFail($adjustmentId), auth()->user());
+        try {
+            $service->reject(StockAdjustment::query()->findOrFail($adjustmentId), auth()->user());
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages([
+                'approve' => $exception->validator->errors()->first() ?: 'This adjustment cannot be rejected.',
+            ]);
+        }
+
         session()->flash('status', 'Adjustment rejected. Present stock was not changed.');
     }
 
-    public function render(): View
+    public function render(StockCalculator $calculator): View
     {
+        $systemQty = $this->product_id
+            ? $calculator->forProductId((int) $this->product_id)
+            : null;
+
+        $physical = $this->physical_qty !== '' && is_numeric($this->physical_qty)
+            ? bcadd($this->physical_qty, '0', 3)
+            : null;
+
+        $difference = $systemQty !== null && $physical !== null
+            ? bcsub($physical, $systemQty, 3)
+            : null;
+
+        $productQuery = Product::query()->where('is_active', true)->orderBy('name');
+        if ($this->productSearch !== '' && ! $this->product_id) {
+            $term = '%'.$this->productSearch.'%';
+            $productQuery->where(function ($query) use ($term) {
+                $query->where('name', 'like', $term)->orWhere('sku', 'like', $term);
+            });
+        }
+
         return view('livewire.adjustments', [
             'adjustments' => StockAdjustment::query()
                 ->with(['product', 'requestedBy', 'reviewedBy'])
                 ->latest()
                 ->paginate(15),
-            'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'products' => $productQuery->limit(20)->get(),
+            'selectedProduct' => $this->product_id ? Product::query()->find($this->product_id) : null,
+            'systemQty' => $systemQty,
+            'difference' => $difference,
             'formatQty' => DecimalDisplay::class,
         ]);
     }

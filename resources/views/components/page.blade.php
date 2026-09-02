@@ -19,9 +19,9 @@
         </div>
     @endif
 
-    @if ($errors->has('approve'))
+    @if ($errors->has('approve') || $errors->has('status'))
         <div class="rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm px-4 py-3">
-            {{ $errors->first('approve') }}
+            {{ $errors->first('approve') ?: $errors->first('status') }}
         </div>
     @endif
 

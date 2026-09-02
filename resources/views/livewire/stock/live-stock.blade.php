@@ -4,7 +4,8 @@
             <input wire:model.live.debounce.300ms="search" type="search" placeholder="Search name or SKU" class="w-full rounded-xl border-slate-300 text-sm">
             <select wire:model.live="filter" class="rounded-xl border-slate-300 text-sm">
                 <option value="all">All products</option>
-                <option value="low">Below minimum</option>
+                <option value="low">Low / critical</option>
+                <option value="out">Out of stock</option>
             </select>
         </div>
 
@@ -21,10 +22,11 @@
                             <p class="text-xs text-slate-500">{{ $product->sku }} · min {{ $formatQty::quantity($product->minimum_stock_level) }} {{ $product->unit }}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-lg font-semibold {{ ($product->is_low ?? false) || ($filter === 'low') ? 'text-red-700' : 'text-slate-900' }}">
+                            <p class="text-lg font-semibold {{ ($product->is_low ?? false) ? 'text-red-700' : 'text-slate-900' }}">
                                 {{ $formatQty::quantity($product->present_stock_calculated) }}
                             </p>
                             <p class="text-xs text-slate-500">{{ $product->unit }}</p>
+                            <x-stock-status-badge :status="$product->stock_status ?? 'healthy'" />
                         </div>
                     </article>
                 @endforeach

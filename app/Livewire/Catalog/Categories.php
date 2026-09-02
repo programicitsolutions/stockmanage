@@ -20,7 +20,7 @@ class Categories extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()?->isAccountant(), 403);
+        abort_unless(auth()->user()?->canManageProducts(), 403);
 
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:120'],
