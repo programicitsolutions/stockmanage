@@ -13,7 +13,10 @@ use Illuminate\Support\Carbon;
 
 class StockInsights
 {
-    public function __construct(private StockCalculator $calculator) {}
+    public function __construct(
+        private StockCalculator $calculator,
+        private LandingCostService $landing,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -23,9 +26,11 @@ class StockInsights
         $from ??= now()->subDays($trendDays - 1)->startOfDay();
         $products = Product::query()->get(['id', 'name', 'sku', 'category_id', 'unit', 'minimum_stock_level', 'default_purchase_price', 'kind']);
         $stock = $this->calculator->forProductIds($products->pluck('id')->all());
+        $landings = $this->landing->averageUnitLandingByProductIds($products->pluck('id')->all());
 
         $totalQty = '0';
         $stockValue = '0';
+        $landingValue = '0';
         $low = 0;
         $critical = 0;
         $out = 0;
@@ -39,6 +44,7 @@ class StockInsights
             $present = $stock[$product->id] ?? '0.000';
             $totalQty = bcadd($totalQty, $present, 3);
             $stockValue = bcadd($stockValue, bcmul($present, (string) $product->default_purchase_price, 2), 2);
+            $landingValue = bcadd($landingValue, bcmul($present, $landings[(int) $product->id] ?? '0', 2), 2);
             if (($product->kind?->value ?? 'main') === 'inner') {
                 $innerCount++;
             } else {
@@ -75,6 +81,8 @@ class StockInsights
 
         $todayIn = StockTransaction::query()->whereDate('transaction_date', today())->where('transaction_type', TransactionType::StockIn)->sum('quantity');
         $todayOut = StockTransaction::query()->whereDate('transaction_date', today())->where('transaction_type', TransactionType::StockOut)->sum('quantity');
+        $profit30 = $this->landing->periodProfit(now()->subDays(29)->toDateString(), now()->toDateString());
+        $profitToday = $this->landing->periodProfit(now()->toDateString(), now()->toDateString());
 
         $trend = $this->dailyTrend($from, now()->endOfDay());
 
@@ -93,6 +101,9 @@ class StockInsights
             'innerCount' => $innerCount,
             'totalQty' => $totalQty,
             'stockValue' => $stockValue,
+            'landingValue' => $landingValue,
+            'profit30' => $profit30,
+            'profitToday' => $profitToday,
             'lowCount' => $low,
             'criticalCount' => $critical,
             'outCount' => $out,

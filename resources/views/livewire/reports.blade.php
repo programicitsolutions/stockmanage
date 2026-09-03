@@ -11,6 +11,7 @@
                 <option value="out_of_stock">Out of stock</option>
                 <option value="history">Product history</option>
                 <option value="value">Stock value</option>
+                <option value="profit">Landing cost / profit</option>
                 <option value="daily">Daily summary</option>
             </select>
             <input wire:model.live="from" type="date" class="rounded-xl border-slate-300 text-sm">

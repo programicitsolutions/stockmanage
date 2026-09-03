@@ -8,9 +8,20 @@
                 <form wire:submit="addLine" class="xl:col-span-3 saas-card p-5 space-y-4">
                     <h2 class="font-semibold">Add a line</h2>
                     <p class="text-xs text-slate-500">Type a SKU and press Add, or search by name. Same product on two adds is combined.</p>
-                    <div>
-                        <x-input-label for="productSearch" value="SKU or name" />
-                        <x-text-input wire:model.live.debounce.200ms="productSearch" wire:keydown.enter.prevent="pickExactSku" id="productSearch" class="block mt-1 w-full" placeholder="MAIN-TIN-50 or product name" autocomplete="off" />
+                    <div x-data="stockScanner">
+                        <div class="flex items-center justify-between gap-2">
+                            <x-input-label for="productSearch" value="SKU or name" />
+                            <button type="button" @click="toggle($wire)" class="text-xs font-semibold text-teal-800 hover:text-teal-950">Scan barcode</button>
+                        </div>
+                        <x-text-input wire:model.live.debounce.200ms="productSearch" wire:keydown.enter.prevent="pickExactSku" id="productSearch" class="block mt-1 w-full" placeholder="Scan or type MAIN-TIN-50" autocomplete="off" />
+                        <p class="mt-1 text-[11px] text-slate-500">Camera scan, USB scanner, or type the SKU and press Enter.</p>
+                        <div x-cloak x-show="open" class="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+                            <video x-ref="video" class="h-48 w-full object-cover" playsinline></video>
+                            <div class="flex items-center justify-between gap-2 px-3 py-2 text-xs text-slate-200">
+                                <span x-text="status"></span>
+                                <button type="button" class="font-semibold text-teal-200" @click="stop()">Close camera</button>
+                            </div>
+                        </div>
                         <x-input-error :messages="$errors->get('product_id')" class="mt-2" />
                         @if ($selectedProduct)
                             <p class="mt-2 text-sm">Selected: <span class="font-semibold">{{ $selectedProduct->sku }} — {{ $selectedProduct->name }}</span>
@@ -83,6 +94,24 @@
                         <x-input-label for="notes" value="Remarks" />
                         <textarea wire:model="notes" id="notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                     </div>
+                    @if ($mode === 'in')
+                        <div class="border-t border-slate-100 pt-3 space-y-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Bill landing extras</p>
+                            <p class="text-[11px] text-slate-500">Split across this bill by line value. Landing = purchase + extras. Does not change present stock.</p>
+                            <div>
+                                <x-input-label for="freight" value="Transport / freight" />
+                                <x-text-input wire:model.blur="freight" id="freight" type="number" step="0.01" min="0" class="block mt-1 w-full" />
+                            </div>
+                            <div>
+                                <x-input-label for="loading_unloading" value="Loading / unloading" />
+                                <x-text-input wire:model.blur="loading_unloading" id="loading_unloading" type="number" step="0.01" min="0" class="block mt-1 w-full" />
+                            </div>
+                            <div>
+                                <x-input-label for="other_charges" value="Other charges" />
+                                <x-text-input wire:model.blur="other_charges" id="other_charges" type="number" step="0.01" min="0" class="block mt-1 w-full" />
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -99,6 +128,9 @@
                                     <th class="py-2 text-right">Qty</th>
                                     <th class="py-2 text-right">Current</th>
                                     <th class="py-2 text-right">{{ $mode === 'in' ? 'New' : 'Remaining' }}</th>
+                                    @if ($mode === 'in')
+                                        <th class="py-2 text-right">Landing / unit</th>
+                                    @endif
                                     <th></th>
                                 </tr>
                             </thead>
@@ -109,6 +141,9 @@
                                         <td class="py-2 text-right font-semibold">{{ $mode === 'in' ? '+' : '−' }}{{ $formatQty::quantity($line['quantity']) }}</td>
                                         <td class="py-2 text-right">{{ $formatQty::quantity($line['current']) }}</td>
                                         <td class="py-2 text-right">{{ $formatQty::quantity($line['projected']) }}</td>
+                                        @if ($mode === 'in')
+                                            <td class="py-2 text-right">{{ $formatMoney::money($line['landing_unit'] ?? '0') }}</td>
+                                        @endif
                                         <td class="py-2 text-right"><button type="button" wire:click="removeLine({{ $i }})" class="text-xs text-red-700">Remove</button></td>
                                     </tr>
                                 @endforeach

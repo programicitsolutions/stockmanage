@@ -46,7 +46,7 @@ class ProductCatalog
             ]);
 
             if (bccomp($opening, '0', 3) === 1) {
-                $this->calculator->record([
+                $openingRow = $this->calculator->record([
                     'product_id' => $product->id,
                     'transaction_type' => TransactionType::Opening,
                     'quantity' => $opening,
@@ -57,6 +57,7 @@ class ProductCatalog
                     'excel_import_id' => $attributes['excel_import_id'] ?? null,
                     'unit_price' => $attributes['default_purchase_price'] ?? null,
                 ]);
+                app(LandingCostService::class)->attachPurchaseFromUnitPrice($openingRow);
             }
 
             return $product;

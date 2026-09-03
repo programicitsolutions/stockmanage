@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\StockTransaction;
 use App\Models\User;
+use App\Services\LandingCostService;
 use App\Services\StockCalculator;
 use App\Services\StockInsights;
 use App\Support\DecimalDisplay;
@@ -124,6 +125,7 @@ class Reports extends Component
             'out_of_stock' => $this->stockRows($calculator, ['out']),
             'history' => $this->historyRows($calculator),
             'value' => $this->valueRows($calculator),
+            'profit' => $this->profitRows($calculator),
             'daily' => $this->dailyRows($insights),
             default => $this->stockRows($calculator, null),
         };
@@ -142,7 +144,9 @@ class Reports extends Component
             ->get();
 
         $stock = $calculator->forProductIds($products->pluck('id')->all());
-        $rows = [['SKU', 'Product', 'Category', 'Unit', 'Present stock', 'Minimum', 'Status', 'Stock value']];
+        $rows = [['SKU', 'Product', 'Category', 'Unit', 'Present stock', 'Minimum', 'Status', 'Landing / unit', 'Inventory value']];
+
+        $landings = app(LandingCostService::class)->averageUnitLandingByProductIds($products->pluck('id')->all());
 
         foreach ($products as $product) {
             $present = $stock[$product->id] ?? '0.000';
@@ -150,6 +154,7 @@ class Reports extends Component
             if ($statuses && ! in_array($status, $statuses, true)) {
                 continue;
             }
+            $unitLand = $landings[(int) $product->id] ?? (string) $product->default_purchase_price;
             $rows[] = [
                 $product->sku,
                 $product->name,
@@ -158,7 +163,8 @@ class Reports extends Component
                 DecimalDisplay::quantity($present),
                 DecimalDisplay::quantity((string) $product->minimum_stock_level),
                 StockStatus::label($status),
-                DecimalDisplay::money(bcmul($present, (string) $product->default_purchase_price, 2)),
+                DecimalDisplay::money($unitLand),
+                DecimalDisplay::money(bcmul($present, $unitLand, 2)),
             ];
         }
 
@@ -258,6 +264,57 @@ class Reports extends Component
     private function valueRows(StockCalculator $calculator): array
     {
         return $this->stockRows($calculator, null);
+    }
+
+    /**
+     * @return list<list<string>>
+     */
+    private function profitRows(StockCalculator $calculator): array
+    {
+        $from = $this->from !== '' ? $this->from : now()->subDays(30)->toDateString();
+        $to = $this->to !== '' ? $this->to : now()->toDateString();
+        $landing = app(LandingCostService::class);
+        $period = $landing->periodProfit(
+            $from,
+            $to,
+            $this->product_id !== '' ? (int) $this->product_id : null,
+        );
+
+        $products = Product::query()
+            ->when($this->product_id !== '', fn ($q) => $q->where('id', $this->product_id))
+            ->when($this->category_id !== '', fn ($q) => $q->where('category_id', $this->category_id))
+            ->orderBy('name')
+            ->get();
+
+        $stock = $calculator->forProductIds($products->pluck('id')->all());
+        $averages = $landing->averageUnitLandingByProductIds($products->pluck('id')->all());
+
+        $rows = [
+            ['Metric', 'Value'],
+            ['Period', $from.' to '.$to],
+            ['Stock-out qty', DecimalDisplay::quantity($period['qty_out'])],
+            ['Revenue', DecimalDisplay::money($period['revenue'])],
+            ['COGS at landing', DecimalDisplay::money($period['cogs'])],
+            ['Gross profit', DecimalDisplay::money($period['profit'])],
+            ['SKU', 'Product', 'Present', 'Landing / unit', 'Sell / unit', 'Unit profit', 'Inventory at landing'],
+        ];
+
+        foreach ($products as $product) {
+            $present = $stock[$product->id] ?? '0.000';
+            $unitLand = $averages[(int) $product->id];
+            $sell = (string) $product->default_selling_price;
+            $rows[] = [
+                $product->sku,
+                $product->name,
+                DecimalDisplay::quantity($present),
+                DecimalDisplay::money($unitLand),
+                DecimalDisplay::money($sell),
+                DecimalDisplay::money(bcsub($sell, $unitLand, 2)),
+                DecimalDisplay::money(bcmul($present, $unitLand, 2)),
+            ];
+        }
+
+        return $rows;
     }
 
     /**

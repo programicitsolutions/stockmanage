@@ -25,10 +25,10 @@
                 <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $formatQty::quantity($totalQty) }}</p>
                 <p class="mt-2 text-xs text-slate-500">From the ledger, not a typed cell</p>
             </a>
-            <a href="{{ route('reports.index') }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
-                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Stock value</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $formatMoney::money($stockValue) }}</p>
-                <p class="mt-2 text-xs text-slate-400">Qty × default purchase price</p>
+            <a href="{{ route('reports.index', ['report' => 'profit']) }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Stock value (landing)</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $formatMoney::money($landingValue ?? $stockValue) }}</p>
+                <p class="mt-2 text-xs text-slate-400">Qty × weighted-average landing</p>
             </a>
             <a href="{{ route('adjustments.index') }}" wire:navigate class="saas-card p-5 hover:border-teal-200 hover:shadow-md transition">
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Pending adjustments</p>
@@ -50,6 +50,15 @@
             <div class="saas-card p-5">
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Today’s stock out</p>
                 <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">−{{ $formatQty::quantity($todayOut) }}</p>
+            </div>
+            <a href="{{ route('reports.index', ['report' => 'profit']) }}" wire:navigate class="saas-card p-5 hover:border-teal-200">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Gross profit (30 days)</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-teal-800">{{ $formatMoney::money($profit30['profit'] ?? '0') }}</p>
+                <p class="mt-2 text-xs text-slate-400">Sales − landing of qty sold</p>
+            </a>
+            <div class="saas-card p-5">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Today’s gross profit</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $formatMoney::money($profitToday['profit'] ?? '0') }}</p>
             </div>
         </div>
 

@@ -10,7 +10,10 @@ use Illuminate\Support\Str;
 
 class StockAssistant
 {
-    public function __construct(private StockCalculator $calculator) {}
+    public function __construct(
+        private StockCalculator $calculator,
+        private LandingCostService $landing,
+    ) {}
 
     /**
      * @return array{text: string, links: list<array{label: string, url: string}>}
@@ -87,6 +90,22 @@ class StockAssistant
             );
         }
 
+        if (Str::contains($lower, ['landing', 'profit', 'margin', 'freight'])) {
+            return $this->pack(
+                "Landing cost is purchase plus transport, loading/unloading, and other charges entered on stock in. Weighted-average landing per unit is used for inventory value and for profit on stock out (selling price − landing). Present stock is still only the ledger formula.",
+                $user,
+                [['Reports · profit', route('reports.index', ['report' => 'profit'])]]
+            );
+        }
+
+        if (Str::contains($lower, ['barcode', 'scan', 'camera'])) {
+            return $this->pack(
+                "On Stock in or Stock out, tap Scan barcode to use the camera, or type/scan the SKU into the search box and press Enter. USB handheld scanners work as a keyboard.",
+                $user,
+                $user->canEnterStock() ? [['Stock in', route('stock.in')]] : []
+            );
+        }
+
         if (Str::contains($lower, ['print', 'slip', 'challan'])) {
             return $this->pack(
                 "After you confirm stock in or out, the next screen is a printable slip (GRN / issue note) with every line, quantities, and the new stock. Use the browser Print button.",
@@ -148,10 +167,15 @@ class StockAssistant
         $status = StockStatus::label(StockStatus::for($present, (string) $product->minimum_stock_level));
         $kind = $product->kind?->label() ?? 'Main product';
 
+        $econ = $this->landing->productCard($product, $present);
+
         $text = $product->sku.' — '.$product->name."\n"
             .'Type: '.$kind."\n"
             .'Current stock: '.DecimalDisplay::quantity($present).' '.$product->unit."\n"
             .'Status: '.$status."\n"
+            .'Landing / unit: '.DecimalDisplay::money($econ['landing_unit'])."\n"
+            .'Sell / unit: '.DecimalDisplay::money($econ['sell'])."\n"
+            .'Unit profit at default sell: '.DecimalDisplay::money($econ['unit_profit'])."\n"
             .'This quantity comes from the ledger, not from a typed cell.';
 
         return $this->pack($text, $user, [

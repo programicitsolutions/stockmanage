@@ -7,6 +7,7 @@ use App\Exceptions\InsufficientStockException;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Services\LandingCostService;
 use App\Services\StockCalculator;
 use App\Support\DecimalDisplay;
 use Illuminate\Contracts\View\View;
@@ -37,6 +38,12 @@ class Entry extends Component
     public string $transaction_date = '';
 
     public string $notes = '';
+
+    public string $freight = '';
+
+    public string $loading_unloading = '';
+
+    public string $other_charges = '';
 
     public bool $reviewed = false;
 
@@ -102,6 +109,13 @@ class Entry extends Component
         if ($product) {
             $this->selectProduct((int) $product->id);
         }
+    }
+
+    public function applyScannedCode(string $code): void
+    {
+        $this->product_id = null;
+        $this->productSearch = trim($code);
+        $this->pickExactSku();
     }
 
     public function addLine(StockCalculator $calculator): void
@@ -216,16 +230,25 @@ class Entry extends Component
         $this->validate($this->headerRules());
 
         return DB::transaction(function () use ($calculator) {
-            $ids = [];
+            $models = [];
             foreach ($this->lines as $line) {
-                $ids[] = $calculator->record($this->payload(
+                $models[] = $calculator->record($this->payload(
                     (int) $line['product_id'],
                     (string) $line['quantity'],
                     $line['unit_price'] ?? null,
-                ))->id;
+                ));
             }
 
-            return $ids;
+            if ($this->mode === 'in') {
+                app(LandingCostService::class)->attachInboundBill(
+                    $models,
+                    $this->freight,
+                    $this->loading_unloading,
+                    $this->other_charges,
+                );
+            }
+
+            return array_map(fn ($tx) => $tx->id, $models);
         });
     }
 
@@ -237,11 +260,22 @@ class Entry extends Component
             $validated['unit_price'] = null;
         }
 
-        return $calculator->record($this->payload(
+        $transaction = $calculator->record($this->payload(
             (int) $validated['product_id'],
             (string) $validated['quantity'],
             $validated['unit_price'] !== '' ? $validated['unit_price'] : null,
-        ))->id;
+        ));
+
+        if ($this->mode === 'in') {
+            app(LandingCostService::class)->attachInboundBill(
+                [$transaction],
+                $this->freight,
+                $this->loading_unloading,
+                $this->other_charges,
+            );
+        }
+
+        return $transaction->id;
     }
 
     /**
@@ -276,6 +310,9 @@ class Entry extends Component
 
         if ($this->mode === 'in') {
             $rules['supplier_id'] = ['nullable', 'exists:suppliers,id'];
+            $rules['freight'] = ['nullable', 'numeric', 'min:0'];
+            $rules['loading_unloading'] = ['nullable', 'numeric', 'min:0'];
+            $rules['other_charges'] = ['nullable', 'numeric', 'min:0'];
         } else {
             $rules['customer_id'] = ['nullable', 'exists:customers,id'];
         }
@@ -319,6 +356,18 @@ class Entry extends Component
             ]);
         }
 
+        if ($this->mode === 'in' && $previewLines !== []) {
+            $landings = app(LandingCostService::class)->previewLineLandings(
+                $previewLines,
+                $this->freight,
+                $this->loading_unloading,
+                $this->other_charges,
+            );
+            foreach ($previewLines as $i => $line) {
+                $previewLines[$i] = array_merge($line, $landings[$i] ?? []);
+            }
+        }
+
         $presentRaw = $this->product_id
             ? $calculator->forProductId((int) $this->product_id)
             : null;
@@ -339,6 +388,7 @@ class Entry extends Component
             'present' => $presentRaw !== null ? DecimalDisplay::quantity($presentRaw) : null,
             'previewLines' => $previewLines,
             'formatQty' => DecimalDisplay::class,
+            'formatMoney' => DecimalDisplay::class,
         ])->title($this->mode === 'in' ? 'Stock in' : 'Stock out');
     }
 }

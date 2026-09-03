@@ -77,7 +77,17 @@ Login → Dashboard → Stock in / Stock out → add lines (SKU or name) → Rev
 
 Stock quantity is never edited on the product form. Opening stock is posted once at product create. Later corrections use Stock in, Stock out, or a physical-count / count sheet.
 
-The **stock assistant** is a page at `/assistant` (sidebar **Assistant**, or **Ask assistant**). It answers stock in/out/adjustments questions and looks up a SKU against the live ledger. It is not an AI chat — replies come from `App\Services\StockAssistant`.
+The **stock assistant** is a page at `/assistant`. With `OPENAI_API_KEY` in `.env` it answers in natural language and calls ledger tools (SKU lookup, low stock, profit). Without a key it uses the built-in rules (stock in/out, landing, SKU). It never invents present stock.
+
+## Landing cost and profit
+
+On **Stock in**, enter line price plus optional bill extras (transport, loading/unloading, other). Those extras are split across the bill by line value and stored on the ledger as cost rows. **Landing / unit** = (purchase + extras) ÷ inbound qty (weighted average of opening + stock in).
+
+**Gross profit** on stock out = selling amount − (qty × landing / unit). See Dashboard cards, product history, and **Reports → Landing cost / profit**. Present stock is still only the ledger formula.
+
+## Barcode scan
+
+Stock in and stock out have **Scan barcode** (camera, Chrome/Edge on https or localhost) and accept a USB scanner as keyboard input in the SKU box.
 
 ## Roles (enforced on the server)
 

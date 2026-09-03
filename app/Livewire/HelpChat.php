@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Services\StockAssistant;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -23,7 +22,9 @@ class HelpChat extends Component
     {
         $this->messages = [[
             'role' => 'assistant',
-            'text' => 'Hi — I am the stock assistant. Ask about stock in, stock out, adjustments, or paste a SKU such as MAIN-TIN-50. I use this company’s live ledger.',
+            'text' => filled(config('services.openai.key'))
+                ? 'Hi — I can answer in natural language and look up this company’s live ledger (stock, landing cost, profit). Ask anything about stock in, stock out, a SKU, or today’s profit.'
+                : 'Hi — I am the stock assistant. Ask about stock in, stock out, adjustments, landing cost, or paste a SKU such as MAIN-TIN-50. Add OPENAI_API_KEY on the server to enable GPT answers; until then I use ledger rules.',
             'links' => [],
         ]];
     }
@@ -56,7 +57,8 @@ class HelpChat extends Component
         }
 
         try {
-            $reply = app(StockAssistant::class)->reply($text, $user);
+            $history = array_slice($this->messages, 0, -1);
+            $reply = app(\App\Services\AiStockChat::class)->reply($text, $user, $history);
             $this->messages[] = [
                 'role' => 'assistant',
                 'text' => $reply['text'],
@@ -74,6 +76,8 @@ class HelpChat extends Component
 
     public function render(): View
     {
-        return view('livewire.help-chat');
+        return view('livewire.help-chat', [
+            'aiEnabled' => filled(config('services.openai.key')),
+        ]);
     }
 }

@@ -28,7 +28,9 @@ class Show extends Component
         return view('livewire.products.show', [
             'summary' => $summary,
             'status' => $status,
+            'economics' => app(\App\Services\LandingCostService::class)->productCard($this->product, $summary['present']),
             'formatQty' => DecimalDisplay::class,
+            'formatMoney' => DecimalDisplay::class,
         ])->title($this->product->name);
     }
 }

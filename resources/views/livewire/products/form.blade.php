@@ -63,10 +63,12 @@
                 <div>
                     <x-input-label for="default_purchase_price" value="Default purchase price" />
                     <x-text-input wire:model="default_purchase_price" id="default_purchase_price" type="number" step="0.01" min="0" class="block mt-1 w-full" />
+                    <p class="mt-1 text-xs text-slate-500">Used on stock in when you do not type a line price. Landing cost on a bill can also include freight.</p>
                 </div>
                 <div>
                     <x-input-label for="default_selling_price" value="Default selling price" />
                     <x-text-input wire:model="default_selling_price" id="default_selling_price" type="number" step="0.01" min="0" class="block mt-1 w-full" />
+                    <p class="mt-1 text-xs text-slate-500">Used on stock out and for unit profit (sell − landing).</p>
                 </div>
             </div>
             <label class="inline-flex items-center gap-2 text-sm">

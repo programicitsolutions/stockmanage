@@ -36,6 +36,26 @@
             </div>
         </dl>
 
+        <dl class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="rounded-2xl bg-white border border-slate-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-slate-500">Landing / unit</dt>
+                <dd class="mt-1 text-xl font-semibold">{{ $formatMoney::money($economics['landing_unit']) }}</dd>
+            </div>
+            <div class="rounded-2xl bg-white border border-slate-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-slate-500">Sell / unit</dt>
+                <dd class="mt-1 text-xl font-semibold">{{ $formatMoney::money($economics['sell']) }}</dd>
+            </div>
+            <div class="rounded-2xl bg-white border border-slate-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-slate-500">Unit profit</dt>
+                <dd class="mt-1 text-xl font-semibold text-teal-800">{{ $formatMoney::money($economics['unit_profit']) }}</dd>
+            </div>
+            <div class="rounded-2xl bg-white border border-slate-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-slate-500">Inventory at landing</dt>
+                <dd class="mt-1 text-xl font-semibold">{{ $formatMoney::money($economics['inventory_value']) }}</dd>
+            </div>
+        </dl>
+        <p class="text-xs text-slate-500">Landing is purchase + freight and other charges from stock-in bills, averaged by inbound quantity. Present stock is still only the ledger formula.</p>
+
         @if ($summary['movements'] === [])
             <p class="text-sm text-slate-500">No ledger movements yet for this product.</p>
         @else

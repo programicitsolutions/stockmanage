@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between bg-slate-950 px-4 py-3 text-white">
             <div>
                 <p class="text-sm font-semibold">Stock assistant</p>
-                <p class="text-[11px] text-slate-400">Live help for this ledger</p>
+                <p class="text-[11px] text-slate-400">{{ $aiEnabled ? 'GPT + live ledger tools' : 'Ledger rules (add OPENAI_API_KEY for GPT)' }}</p>
             </div>
         </div>
 
@@ -22,9 +22,9 @@
 
         <div class="flex flex-wrap gap-1 border-t border-slate-100 px-3 pt-2 bg-white">
             <button type="button" wire:click="ask('stock in')" class="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">Stock in</button>
-            <button type="button" wire:click="ask('stock out')" class="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">Stock out</button>
+            <button type="button" wire:click="ask('landing cost')" class="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">Landing cost</button>
             <button type="button" wire:click="ask('low stock')" class="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">Low stock</button>
-            <button type="button" wire:click="ask('adjustments')" class="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">Adjustments</button>
+            <button type="button" wire:click="ask('profit')" class="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">Profit</button>
         </div>
 
         <form wire:submit="send" class="flex gap-2 p-3 bg-white">
